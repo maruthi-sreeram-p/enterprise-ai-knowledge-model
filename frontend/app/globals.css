@@ -1,0 +1,41 @@
+@import "tailwindcss";
+
+::-webkit-scrollbar {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+}
+
+* {
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
+}
+
+@keyframes pulseGlow {
+  0% { opacity: 0.4; transform: scale(1); }
+  100% { opacity: 0.8; transform: scale(1.05); }
+}
+
+@keyframes slideUp {
+  0% { transform: translateY(20px); opacity: 0; }
+  100% { transform: translateY(0); opacity: 1; }
+}
+
+@layer utilities {
+  .animate-pulse-glow {
+    animation: pulseGlow 3s infinite alternate;
+  }
+  .animate-slide-up {
+    animation: slideUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  }
+  .glass-panel {
+    @apply bg-[rgba(17,25,40,0.75)] backdrop-blur-xl border border-slate-700/50 shadow-[0_8px_32px_0_rgba(0,0,0,0.37)] rounded-2xl;
+  }
+  .btn-primary {
+    @apply px-4 py-3 bg-[#2563eb] hover:bg-[#1d4ed8] text-white rounded-lg transition-all duration-300 ease-in-out active:scale-[0.98] flex items-center justify-center gap-2 font-medium tracking-wide;
+  }
+}
+
+body {
+  @apply bg-[#0a0f1c] text-slate-200 antialiased selection:bg-[#2563eb] selection:text-white min-h-screen overflow-hidden;
+}
