@@ -1,0 +1,98 @@
+# =============================================================================
+# Demo profile: run the whole application with no Docker, no PostgreSQL, and no
+# API key.
+#
+#     cd backend && mvn spring-boot:run -Dspring-boot.run.profiles=demo
+#
+# What is real here: registration, login, JWT, roles, tenant isolation, upload,
+# PDF/DOCX/TXT text extraction, chunking, retrieval with the authorization
+# filter, citation building, conversations, and the audit trail.
+#
+# What is substituted: PostgreSQL becomes in-memory H2, pgvector becomes Spring
+# AI's in-memory store, and the two Gemini calls become offline stand-ins. See
+# DemoAiConfig.
+#
+# Everything lives in memory and is discarded on shutdown.
+# =============================================================================
+
+spring:
+  autoconfigure:
+    exclude:
+      # No PostgreSQL, so the pgvector store must not be auto-configured.
+      - org.springframework.ai.vectorstore.pgvector.autoconfigure.PgVectorStoreAutoConfiguration
+      # No API key, so the Gemini clients must not be built. DemoAiConfig supplies
+      # offline replacements for both.
+      - org.springframework.ai.model.google.genai.autoconfigure.chat.GoogleGenAiChatAutoConfiguration
+      - org.springframework.ai.model.google.genai.autoconfigure.embedding.GoogleGenAiEmbeddingConnectionAutoConfiguration
+      - org.springframework.ai.model.google.genai.autoconfigure.embedding.GoogleGenAiTextEmbeddingAutoConfiguration
+
+  datasource:
+    url: jdbc:h2:mem:knowledge;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
+    driver-class-name: org.h2.Driver
+    username: sa
+    password: ""
+
+  jpa:
+    database-platform: org.hibernate.dialect.H2Dialect
+    hibernate:
+      # Flyway is disabled below because the production migration uses
+      # PostgreSQL-specific DDL (CREATE EXTENSION vector), so Hibernate generates
+      # the demo schema from the entities instead. The production profile keeps
+      # Flyway and `validate`; this shortcut is confined to the demo.
+      ddl-auto: create-drop
+
+  flyway:
+    enabled: false
+
+  # The base application.yml declares ${GEMINI_API_KEY} with no default. The
+  # Gemini auto-configurations are excluded above so nothing should read it, but
+  # an explicit empty value removes any chance of a startup failure resolving it.
+  # Empty means "no key", which is exactly true in this profile.
+  ai:
+    google:
+      genai:
+        api-key: ""
+        embedding:
+          api-key: ""
+
+app:
+  jwt:
+    # Demo-only signing key. It is committed deliberately because it protects
+    # nothing: this profile holds no real data and is not meant to be deployed.
+    # The production profile still requires JWT_SECRET from the environment.
+    secret: ZGVtby1wcm9maWxlLXNpZ25pbmcta2V5LW5vdC1mb3ItcHJvZHVjdGlvbi11c2UtZXZlcg==
+    expiration-minutes: 480
+  storage:
+    root: ./demo-storage
+  rate-limit:
+    # Redis is not running in this profile.
+    enabled: false
+  answer-cache:
+    enabled: false
+  ingestion:
+    mode: IN_PROCESS
+  rag:
+    top-k: 6
+    # Lower than production. The offline embedding model is a word-hash rather
+    # than a semantic model, so genuinely related passages score lower than they
+    # would with Gemini.
+    similarity-threshold: 0.05
+    chunk-size-tokens: 200
+    min-chunk-characters: 40
+
+management:
+  health:
+    # Redis is not running in this profile and nothing uses it here, since rate
+    # limiting and answer caching are both off. Leaving the indicator enabled
+    # would report the whole application as DOWN over a dependency it is not
+    # using, and every health probe would spend its timeout failing to connect.
+    redis:
+      enabled: false
+
+logging:
+  level:
+    com.enterprise.knowledge: INFO
+    # Silence the connection retries from the Redis client, which has no server
+    # to reach in this profile.
+    io.lettuce.core: OFF
+    org.springframework.data.redis: OFF

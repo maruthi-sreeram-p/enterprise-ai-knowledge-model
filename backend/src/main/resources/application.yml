@@ -1,0 +1,171 @@
+spring:
+  application:
+    name: enterprise-ai-knowledge-base
+
+  # ---------------------------------------------------------------------------
+  # PostgreSQL. Every value comes from the environment; nothing is hardcoded.
+  # ---------------------------------------------------------------------------
+  datasource:
+    url: jdbc:postgresql://${POSTGRES_HOST:localhost}:${POSTGRES_PORT:5432}/${POSTGRES_DB:knowledge_base}
+    username: ${POSTGRES_USER:knowledge}
+    password: ${POSTGRES_PASSWORD}
+    hikari:
+      maximum-pool-size: 10
+      pool-name: knowledge-base-pool
+
+  jpa:
+    hibernate:
+      # Flyway owns the schema. Hibernate only checks that the entities match it,
+      # which turns a mapping mistake into a startup failure instead of a runtime
+      # surprise.
+      ddl-auto: validate
+    open-in-view: false
+    properties:
+      hibernate:
+        jdbc:
+          time_zone: UTC
+
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    baseline-on-migrate: true
+
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      timeout: 2s
+
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    consumer:
+      group-id: knowledge-base-ingestion
+      auto-offset-reset: earliest
+      properties:
+        spring.json.trusted.packages: com.enterprise.knowledge.*
+
+  servlet:
+    multipart:
+      max-file-size: 20MB
+      max-request-size: 25MB
+
+  threads:
+    virtual:
+      enabled: true
+
+  # ---------------------------------------------------------------------------
+  # Spring AI
+  #
+  # Property names verified against spring-ai-autoconfigure-model-google-genai
+  # and spring-ai-autoconfigure-vector-store-pgvector 1.1.8.
+  # ---------------------------------------------------------------------------
+  ai:
+    google:
+      genai:
+        # Supplied through the environment only. Never commit a real key.
+        api-key: ${GEMINI_API_KEY}
+        chat:
+          options:
+            model: ${GEMINI_CHAT_MODEL:gemini-2.5-flash}
+            temperature: 0.2
+        embedding:
+          api-key: ${GEMINI_API_KEY}
+          # false selects the Gemini Developer API, which authenticates with a
+          # plain API key. true would switch to Vertex AI and require a GCP
+          # project and service-account credentials instead.
+          vertex-ai: false
+          text:
+            options:
+              model: ${GEMINI_EMBEDDING_MODEL:gemini-embedding-001}
+              # gemini-embedding-001 returns 3072 dimensions by default, but a
+              # pgvector HNSW index only supports up to 2000. Truncating to 768
+              # keeps the index buildable.
+              dimensions: ${GEMINI_EMBEDDING_DIMENSIONS:768}
+
+    vectorstore:
+      pgvector:
+        # Must match the embedding dimensions configured above.
+        dimensions: ${EMBEDDING_DIMENSIONS:768}
+        index-type: hnsw
+        distance-type: cosine-distance
+        # Spring AI creates and indexes its own `vector_store` table. The
+        # application's tables are owned by Flyway.
+        initialize-schema: true
+        schema-validation: false
+        max-document-batch-size: 100
+
+    chat:
+      client:
+        # ChatClient.Builder is created explicitly in AiConfig so that the system
+        # prompt and grounding rules live in one reviewable place.
+        enabled: false
+
+# -----------------------------------------------------------------------------
+# Application settings
+# -----------------------------------------------------------------------------
+app:
+  jwt:
+    secret: ${JWT_SECRET}
+    expiration-minutes: ${JWT_EXPIRATION_MINUTES:120}
+    issuer: enterprise-ai-knowledge-base
+  storage:
+    root: ${STORAGE_ROOT:./storage}
+    max-file-size-bytes: 20971520
+  rag:
+    top-k: ${RAG_TOP_K:6}
+    similarity-threshold: ${RAG_SIMILARITY_THRESHOLD:0.35}
+    chunk-size-tokens: ${RAG_CHUNK_SIZE_TOKENS:400}
+    min-chunk-characters: 60
+  audit:
+    # See AppProperties.Audit for why this defaults to false.
+    store-query-text: ${AUDIT_STORE_QUERY_TEXT:false}
+  ingestion:
+    # IN_PROCESS (default) queues ingestion on a bounded in-memory pool and needs
+    # no broker. KAFKA publishes an event so ingestion survives a restart and can
+    # be scaled separately from the API.
+    mode: ${INGESTION_MODE:IN_PROCESS}
+    topic: document.uploaded
+  answer-cache:
+    enabled: ${ANSWER_CACHE_ENABLED:false}
+    ttl-minutes: ${ANSWER_CACHE_TTL_MINUTES:10}
+  rate-limit:
+    enabled: ${RATE_LIMIT_ENABLED:true}
+    ai-requests-per-window: ${RATE_LIMIT_AI_REQUESTS:20}
+    window-seconds: ${RATE_LIMIT_WINDOW_SECONDS:60}
+
+# -----------------------------------------------------------------------------
+# CORS. The frontend origin is configurable so the same image can serve
+# different environments.
+# -----------------------------------------------------------------------------
+cors:
+  allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:3000}
+
+server:
+  port: ${SERVER_PORT:8080}
+  error:
+    # Error responses are produced by GlobalExceptionHandler. These settings stop
+    # the servlet container from adding stack traces or messages of its own.
+    include-stacktrace: never
+    include-message: never
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      show-details: never
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+    operations-sorter: method
+
+logging:
+  level:
+    root: INFO
+    com.enterprise.knowledge: ${LOG_LEVEL:INFO}
+    # Set to DEBUG locally to see the SQL that vector searches compile to,
+    # including the tenant filter.
+    org.springframework.ai.vectorstore: INFO

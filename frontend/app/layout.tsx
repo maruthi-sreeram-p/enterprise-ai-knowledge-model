@@ -3,8 +3,9 @@ import "./globals.css";
 import AuthProvider from "../components/AuthProvider";
 
 export const metadata: Metadata = {
-  title: "Enterprise AI",
-  description: "Secure Knowledge Base",
+  title: "Enterprise AI Knowledge Base",
+  description:
+    "Ask questions about your organization's documents and get answers with sources.",
 };
 
 export default function RootLayout({
@@ -15,9 +16,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body>
-        <AuthProvider>
-          {children}
-        </AuthProvider>
+        <AuthProvider>{children}</AuthProvider>
       </body>
     </html>
   );

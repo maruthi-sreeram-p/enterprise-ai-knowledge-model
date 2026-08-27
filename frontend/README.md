@@ -1,36 +1,60 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Frontend
 
-## Getting Started
+Next.js 16 (App Router) client for the Enterprise AI Knowledge Base.
 
-First, run the development server:
+It is deliberately a **client-rendered single-page app**. Next.js server features
+are not used: every page is a client component that talks to the Spring Boot API
+over HTTPS with a bearer token. Next.js is here because it was already the
+project's frontend, not because the application needs a Node server.
+
+## Running
 
 ```bash
+cp .env.local.example .env.local
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Then open <http://localhost:3000>. The backend must be running on the URL set in
+`NEXT_PUBLIC_API_BASE_URL` (default `http://localhost:8080`).
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Scripts
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+| Command             | What it does                          |
+| ------------------- | ------------------------------------- |
+| `npm run dev`       | Development server with hot reload     |
+| `npm run build`     | Production build                       |
+| `npm run typecheck` | TypeScript check with no emit          |
+| `npm run lint`      | ESLint                                 |
 
-## Learn More
+## Layout
 
-To learn more about Next.js, take a look at the following resources:
+```
+app/
+├── page.tsx            Chat: ask a question, read the answer and its sources
+├── login/              Sign in
+├── register/           Create an organization and its first administrator
+├── documents/          Upload, list, and delete documents
+├── dashboard/          Counts for the signed-in user's organization
+└── admin/              Users and the audit log (administrators only)
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+components/
+├── AuthProvider.tsx    Holds the session; verifies it against /api/auth/me
+├── RequireAuth.tsx     Redirects signed-out users; hides screens by role
+├── AppShell.tsx        Navigation shared by every signed-in page
+└── SourceList.tsx      Renders answer citations
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+lib/
+├── api.ts              Axios client, token handling, error messages
+└── types.ts            TypeScript mirrors of the API's DTOs
+```
 
-## Deploy on Vercel
+## A note on the role checks here
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+`RequireAuth` hides screens a role cannot use. That is a usability measure, not a
+security boundary — the real enforcement is on the server, where every endpoint
+checks the role and the tenant carried by the signed token. Editing your way past
+the client-side check gets you an empty page and a 403.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Full documentation, including setup of the backend, is in the
+[root README](../README.md).

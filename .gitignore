@@ -1,0 +1,76 @@
+# ---------------------------------------------------------------------------
+# Secrets and local configuration -- MUST NEVER BE COMMITTED
+# ---------------------------------------------------------------------------
+.env
+.env.*
+!.env.example
+*.local
+secrets/
+*.pem
+*.key
+*.p12
+*.jks
+application-local.yml
+application-local.yaml
+application-local.properties
+application-secrets.yml
+
+# ---------------------------------------------------------------------------
+# Java / Maven build output
+# ---------------------------------------------------------------------------
+target/
+build/
+!.mvn/wrapper/maven-wrapper.jar
+!**/src/main/**/target/
+!**/src/test/**/target/
+*.class
+*.jar
+!.mvn/wrapper/*.jar
+*.war
+*.ear
+*.log
+hs_err_pid*
+replay_pid*
+
+# ---------------------------------------------------------------------------
+# Node / frontend
+# ---------------------------------------------------------------------------
+node_modules/
+.next/
+out/
+dist/
+coverage/
+*.tsbuildinfo
+next-env.d.ts
+.vercel
+
+# ---------------------------------------------------------------------------
+# Local runtime data (uploaded documents, database volumes)
+# ---------------------------------------------------------------------------
+storage/
+uploads/
+data/
+docker/volumes/
+
+# ---------------------------------------------------------------------------
+# IDE / editor
+# ---------------------------------------------------------------------------
+.idea/
+*.iml
+*.ipr
+*.iws
+.vscode/
+.settings/
+.project
+.classpath
+.factorypath
+nbproject/
+*.swp
+*~
+
+# ---------------------------------------------------------------------------
+# OS
+# ---------------------------------------------------------------------------
+.DS_Store
+Thumbs.db
+desktop.ini

@@ -1,25 +1,20 @@
 {
-  "name": "frontend",
+  "name": "enterprise-ai-knowledge-base-frontend",
   "version": "0.1.0",
   "private": true,
   "scripts": {
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@reduxjs/toolkit": "^2.12.0",
     "axios": "^1.16.1",
-    "clsx": "^2.1.1",
     "lucide-react": "^1.16.0",
     "next": "16.2.6",
-    "next-auth": "^4.24.14",
     "react": "19.2.4",
-    "react-dom": "19.2.4",
-    "react-redux": "^9.3.0",
-    "socket.io-client": "^4.8.3",
-    "tailwind-merge": "^3.6.0"
+    "react-dom": "19.2.4"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",

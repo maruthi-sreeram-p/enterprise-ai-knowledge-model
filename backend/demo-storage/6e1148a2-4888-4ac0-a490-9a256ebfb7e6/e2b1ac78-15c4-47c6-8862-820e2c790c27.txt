@@ -1,0 +1,4 @@
+Acme Corporation Executive Compensation Schedule
+Director bonuses are calculated from the confidential remuneration matrix
+approved by the Acme board. Base salary bands for directors range from
+180000 to 260000 dollars depending on tenure and division.

@@ -1,0 +1,55 @@
+# Test configuration.
+#
+# The Gemini auto-configurations are excluded outright rather than fed a dummy
+# key, so the tests cannot accidentally depend on a credential being present and
+# cannot make a network call. TestAiConfiguration supplies offline stand-ins in
+# their place.
+spring:
+  autoconfigure:
+    exclude:
+      - org.springframework.ai.model.google.genai.autoconfigure.chat.GoogleGenAiChatAutoConfiguration
+      - org.springframework.ai.model.google.genai.autoconfigure.embedding.GoogleGenAiEmbeddingConnectionAutoConfiguration
+      - org.springframework.ai.model.google.genai.autoconfigure.embedding.GoogleGenAiTextEmbeddingAutoConfiguration
+
+  jpa:
+    hibernate:
+      ddl-auto: validate
+
+  ai:
+    vectorstore:
+      pgvector:
+        # Matches DeterministicEmbeddingModel.DIMENSIONS.
+        dimensions: 768
+        initialize-schema: true
+        index-type: hnsw
+        distance-type: cosine-distance
+
+app:
+  jwt:
+    # Test-only signing key. Not a secret and never used outside the test suite.
+    secret: dGVzdC1vbmx5LXNpZ25pbmcta2V5LWZvci11bml0LWFuZC1pbnRlZ3JhdGlvbi10ZXN0cw==
+    expiration-minutes: 60
+  storage:
+    root: ./target/test-storage
+  rate-limit:
+    # Redis is not started for tests, and the limiter is not what is under test.
+    enabled: false
+  answer-cache:
+    # Off so that each test observes a real retrieval rather than a cached reply.
+    enabled: false
+  ingestion:
+    mode: IN_PROCESS
+  rag:
+    top-k: 5
+    # Lower than production. The stand-in embedding model is a bag-of-words
+    # hash, so genuinely related passages score lower than they would with a
+    # real semantic model.
+    similarity-threshold: 0.05
+    chunk-size-tokens: 200
+    min-chunk-characters: 20
+
+logging:
+  level:
+    org.testcontainers: WARN
+    com.github.dockerjava: WARN
+    org.springframework.ai: WARN
