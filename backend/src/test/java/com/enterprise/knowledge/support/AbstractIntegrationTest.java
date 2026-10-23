@@ -1,7 +1,7 @@
 package com.enterprise.knowledge.support;
 
 import org.junit.jupiter.api.Tag;
-import org.junit.jupiter.api.condition.EnabledIf;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
@@ -27,9 +27,7 @@ import org.springframework.test.context.DynamicPropertySource;
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
 @Import(TestAiConfiguration.class)
-@EnabledIf(
-        value = "com.enterprise.knowledge.support.DockerAvailability#isDockerAvailable",
-        disabledReason = "No Docker daemon is available, so PostgreSQL with pgvector cannot be started")
+@ExtendWith(RequiresDocker.class)
 @Tag("integration")
 public abstract class AbstractIntegrationTest {
 

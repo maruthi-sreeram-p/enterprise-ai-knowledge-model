@@ -17,7 +17,9 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.ErrorResponse;
 import org.springframework.web.multipart.MaxUploadSizeExceededException;
+import org.springframework.web.multipart.MultipartException;
 import org.springframework.web.servlet.NoHandlerFoundException;
 
 import java.util.ArrayList;
@@ -132,8 +134,31 @@ public class GlobalExceptionHandler {
                 "No endpoint matches this request.", request.getRequestURI()));
     }
 
+    @ExceptionHandler(MultipartException.class)
+    public ResponseEntity<ApiError> handleNotMultipart(MultipartException ex,
+                                                       HttpServletRequest request) {
+        log.debug("Multipart problem on {}: {}", request.getRequestURI(), ex.getMessage());
+        return ResponseEntity.badRequest().body(ApiError.of(
+                HttpStatus.BAD_REQUEST.value(), "BAD_REQUEST",
+                "The request must be multipart/form-data with a file part.",
+                request.getRequestURI()));
+    }
+
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ApiError> handleUnexpected(Exception ex, HttpServletRequest request) {
+        // Spring's own client-error exceptions (wrong HTTP method, unsupported
+        // content type, a missing multipart part, an unknown path) carry the
+        // right 4xx status themselves. Without this they would fall through to
+        // the 500 below and look like server faults.
+        if (ex instanceof ErrorResponse errorResponse
+                && errorResponse.getStatusCode().is4xxClientError()) {
+            HttpStatus status = HttpStatus.valueOf(errorResponse.getStatusCode().value());
+            log.debug("{} on {}: {}", status, request.getRequestURI(), ex.getMessage());
+            return ResponseEntity.status(status).body(ApiError.of(
+                    status.value(), status.name(),
+                    status.getReasonPhrase() + ".", request.getRequestURI()));
+        }
+
         log.error("Unhandled exception on {}", request.getRequestURI(), ex);
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(ApiError.of(
                 HttpStatus.INTERNAL_SERVER_ERROR.value(), "INTERNAL_ERROR",
