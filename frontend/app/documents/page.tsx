@@ -1,9 +1,10 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { AlertCircle, CheckCircle2, Clock, Trash2, Upload } from "lucide-react";
+import { FileText, Trash2, Upload } from "lucide-react";
 import AppShell from "../../components/AppShell";
 import RequireAuth from "../../components/RequireAuth";
+import { Alert, Led, LoadingDots, PageHeader } from "../../components/ui";
 import { useAuth } from "../../components/AuthProvider";
 import { api, errorMessage } from "../../lib/api";
 import type {
@@ -57,23 +58,21 @@ function DocumentsWorkspace() {
     }
   }, []);
 
-  useEffect(() => {
-    void loadDocuments();
-  }, [loadDocuments]);
+  // The first load and the polling are one effect. Indexing happens in the
+  // background, so the list is re-fetched every few seconds while anything is
+  // still pending, and the timer is not started once nothing is in flight.
+  const stillWorking = documents.some(
+    (document) =>
+      document.status === "PENDING" || document.status === "PROCESSING",
+  );
 
-  // Indexing happens in the background, so the list is refreshed while anything
-  // is still pending. Polling stops as soon as nothing is in flight, rather than
-  // running forever.
   useEffect(() => {
-    const stillWorking = documents.some(
-      (document) =>
-        document.status === "PENDING" || document.status === "PROCESSING",
-    );
-    if (!stillWorking) return;
-
-    const timer = setInterval(() => void loadDocuments(), 3000);
-    return () => clearInterval(timer);
-  }, [documents, loadDocuments]);
+    if (!loading && !stillWorking) return;
+    const timer = setTimeout(() => void loadDocuments(), loading ? 0 : 3000);
+    return () => clearTimeout(timer);
+    // `documents` is a dependency on purpose: each fetch yields a new array,
+    // which re-arms the timer for the next poll.
+  }, [loading, stillWorking, documents, loadDocuments]);
 
   const handleUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -120,34 +119,28 @@ function DocumentsWorkspace() {
   };
 
   return (
-    <div className="hide-scrollbar h-full overflow-y-auto p-6 md:p-8">
-      <div className="mx-auto max-w-5xl">
-        <header className="mb-6">
-          <h1 className="text-xl font-bold text-white">Documents</h1>
-          <p className="mt-1 text-sm text-slate-500">
-            {isAdmin
+    <div className="h-full overflow-y-auto pr-1">
+      <div className="mx-auto max-w-5xl p-3 md:p-5">
+        <PageHeader
+          title="Documents"
+          subtitle={
+            isAdmin
               ? "Upload PDF, DOCX, or TXT files. Text is extracted, split, and indexed for search."
-              : "Documents your role has access to."}
-          </p>
-        </header>
+              : "Documents your role has access to."
+          }
+        />
 
         {error && (
-          <div
-            role="alert"
-            className="mb-5 rounded-lg border border-red-500/40 bg-red-500/10 px-4 py-3 text-sm text-red-300"
-          >
-            {error}
+          <div className="mb-5">
+            <Alert>{error}</Alert>
           </div>
         )}
 
         {isAdmin && (
-          <div className="glass-panel mb-6 p-5">
+          <div className="surface mb-6 p-5">
             <div className="flex flex-col gap-4 sm:flex-row sm:items-end">
               <div className="flex-1">
-                <label
-                  htmlFor="visibility"
-                  className="mb-1.5 block text-sm font-medium text-slate-300"
-                >
+                <label htmlFor="visibility" className="label mb-2 ml-1 block">
                   Who can read this document
                 </label>
                 <select
@@ -156,7 +149,7 @@ function DocumentsWorkspace() {
                   onChange={(event) =>
                     setVisibility(event.target.value as DocumentVisibility)
                   }
-                  className="w-full rounded-lg border border-slate-600 bg-slate-900/50 px-3 py-2.5 text-sm text-slate-200 focus:outline-none focus:ring-2 focus:ring-[#2563eb]"
+                  className="input"
                 >
                   {Object.entries(VISIBILITY_LABELS).map(([value, label]) => (
                     <option key={value} value={value}>
@@ -164,7 +157,7 @@ function DocumentsWorkspace() {
                     </option>
                   ))}
                 </select>
-                <p className="mt-1.5 text-xs text-slate-600">
+                <p className="engraved mt-1.5 ml-1 text-xs">
                   This also limits which questions can retrieve it.
                 </p>
               </div>
@@ -176,12 +169,12 @@ function DocumentsWorkspace() {
                   accept=".pdf,.docx,.txt"
                   onChange={handleUpload}
                   disabled={uploading}
-                  className="hidden"
+                  className="peer sr-only"
                   id="file-upload"
                 />
                 <label
                   htmlFor="file-upload"
-                  className={`btn-primary cursor-pointer px-5 py-2.5 ${
+                  className={`btn btn-primary px-6 py-3 peer-focus-visible:outline-2 peer-focus-visible:outline-offset-3 peer-focus-visible:outline-brass-hi ${
                     uploading ? "pointer-events-none opacity-60" : ""
                   }`}
                 >
@@ -194,82 +187,91 @@ function DocumentsWorkspace() {
         )}
 
         {loading ? (
-          <p className="py-12 text-center text-sm text-slate-500">Loading…</p>
+          <LoadingDots label="Loading documents" />
         ) : documents.length === 0 ? (
-          <div className="glass-panel p-10 text-center">
-            <p className="text-sm text-slate-400">No documents yet.</p>
-            <p className="mt-1 text-xs text-slate-600">
+          <div className="surface p-10 text-center">
+            <div className="well mx-auto mb-4 grid h-14 w-14 place-items-center rounded-full">
+              <FileText className="h-6 w-6 text-ink-dim" />
+            </div>
+            <p className="embossed text-sm font-semibold">No documents yet</p>
+            <p className="engraved mt-1 text-xs">
               {isAdmin
                 ? "Upload one above to start answering questions from it."
                 : "An administrator needs to upload documents before you can ask about them."}
             </p>
           </div>
         ) : (
-          <div className="glass-panel overflow-hidden">
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-sm">
-                <thead className="border-b border-slate-700/60 text-xs uppercase tracking-wider text-slate-500">
-                  <tr>
-                    <th className="px-4 py-3 font-semibold">File</th>
-                    <th className="px-4 py-3 font-semibold">Status</th>
-                    <th className="px-4 py-3 font-semibold">Visibility</th>
-                    <th className="px-4 py-3 font-semibold">Indexed</th>
-                    <th className="px-4 py-3 font-semibold">Uploaded by</th>
-                    {isAdmin && <th className="px-4 py-3" />}
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-800">
-                  {documents.map((document) => (
-                    <tr key={document.id} className="hover:bg-slate-800/30">
-                      <td className="px-4 py-3">
-                        <p className="font-medium text-slate-200">
-                          {document.fileName}
-                        </p>
-                        <p className="text-xs text-slate-600">
-                          {formatBytes(document.sizeBytes)}
-                          {/* Only shown when the format actually has pages.
-                              Loose `!= null` covers both null and undefined: the
-                              API omits pageCount entirely for DOCX and TXT. */}
-                          {document.pageCount != null &&
-                            ` · ${document.pageCount} page${
-                              document.pageCount === 1 ? "" : "s"
-                            }`}
-                        </p>
-                      </td>
-                      <td className="px-4 py-3">
-                        <StatusBadge
-                          status={document.status}
-                          reason={document.failureReason}
-                        />
-                      </td>
-                      <td className="px-4 py-3 text-xs text-slate-400">
-                        {VISIBILITY_LABELS[document.visibility]}
-                      </td>
-                      <td className="px-4 py-3 text-xs text-slate-400">
-                        {document.status === "PROCESSED"
-                          ? `${document.chunkCount} passage${
-                              document.chunkCount === 1 ? "" : "s"
-                            }`
-                          : "—"}
-                      </td>
-                      <td className="px-4 py-3 text-xs text-slate-400">
-                        {document.uploadedByName ?? "—"}
-                      </td>
-                      {isAdmin && (
-                        <td className="px-4 py-3 text-right">
-                          <button
-                            onClick={() => handleDelete(document)}
-                            aria-label={`Delete ${document.fileName}`}
-                            className="rounded-md p-1.5 text-slate-500 transition-colors hover:bg-slate-700 hover:text-red-400"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </button>
-                        </td>
-                      )}
+          <div className="surface p-3">
+            <div className="well overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-sm">
+                  <thead>
+                    <tr className="border-b border-black/70 bg-white/[0.02]">
+                      <th className="label px-4 py-3">File</th>
+                      <th className="label px-4 py-3">Status</th>
+                      <th className="label px-4 py-3">Visibility</th>
+                      <th className="label px-4 py-3">Indexed</th>
+                      <th className="label px-4 py-3">Uploaded by</th>
+                      {isAdmin && <th className="px-4 py-3" />}
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody>
+                    {documents.map((document) => (
+                      <tr
+                        key={document.id}
+                        className="border-b border-white/[0.04] transition-colors last:border-0 hover:bg-white/[0.03]"
+                      >
+                        <td className="px-4 py-3">
+                          <p className="font-semibold text-ink">
+                            {document.fileName}
+                          </p>
+                          <p className="engraved text-xs">
+                            {formatBytes(document.sizeBytes)}
+                            {/* Only shown when the format actually has pages.
+                                Loose `!= null` covers both null and undefined:
+                                the API omits pageCount entirely for DOCX and
+                                TXT. */}
+                            {document.pageCount != null &&
+                              ` · ${document.pageCount} page${
+                                document.pageCount === 1 ? "" : "s"
+                              }`}
+                          </p>
+                        </td>
+                        <td className="px-4 py-3">
+                          <StatusBadge
+                            status={document.status}
+                            reason={document.failureReason}
+                          />
+                        </td>
+                        <td className="px-4 py-3 text-xs text-ink-muted">
+                          {VISIBILITY_LABELS[document.visibility]}
+                        </td>
+                        <td className="readout px-4 py-3 text-xs">
+                          {document.status === "PROCESSED"
+                            ? `${document.chunkCount} passage${
+                                document.chunkCount === 1 ? "" : "s"
+                              }`
+                            : "—"}
+                        </td>
+                        <td className="px-4 py-3 text-xs text-ink-muted">
+                          {document.uploadedByName ?? "—"}
+                        </td>
+                        {isAdmin && (
+                          <td className="px-4 py-3 text-right">
+                            <button
+                              onClick={() => handleDelete(document)}
+                              aria-label={`Delete ${document.fileName}`}
+                              className="btn btn-sm btn-icon btn-danger"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </button>
+                          </td>
+                        )}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </div>
           </div>
         )}
@@ -285,29 +287,24 @@ function StatusBadge({
   status: DocumentStatus;
   reason?: string;
 }) {
-  if (status === "PROCESSED") {
-    return (
-      <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/15 px-2.5 py-1 text-xs font-medium text-emerald-400">
-        <CheckCircle2 className="h-3.5 w-3.5" />
-        Indexed
-      </span>
-    );
-  }
-  if (status === "FAILED") {
-    return (
-      <span
-        title={reason}
-        className="inline-flex items-center gap-1.5 rounded-full bg-red-500/15 px-2.5 py-1 text-xs font-medium text-red-400"
-      >
-        <AlertCircle className="h-3.5 w-3.5" />
-        Failed
-      </span>
-    );
-  }
+  const config: Record<
+    DocumentStatus,
+    { color: "green" | "red" | "amber"; label: string; pulse: boolean }
+  > = {
+    PROCESSED: { color: "green", label: "Indexed", pulse: false },
+    FAILED: { color: "red", label: "Failed", pulse: false },
+    PROCESSING: { color: "amber", label: "Indexing", pulse: true },
+    PENDING: { color: "amber", label: "Queued", pulse: true },
+  };
+  const { color, label, pulse } = config[status];
+
   return (
-    <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-500/15 px-2.5 py-1 text-xs font-medium text-amber-400">
-      <Clock className="h-3.5 w-3.5 animate-pulse" />
-      {status === "PROCESSING" ? "Indexing" : "Queued"}
+    <span
+      title={status === "FAILED" ? reason : undefined}
+      className="inline-flex items-center gap-2 text-xs font-semibold text-ink-muted"
+    >
+      <Led color={color} pulse={pulse} />
+      {label}
     </span>
   );
 }

@@ -32,6 +32,19 @@ const AuthContext = createContext<AuthState | null>(null);
 const ORGANIZATION_STORAGE_KEY = "knowledge_base_organization";
 
 /**
+ * Where to go after signing in: the page the user was sent away from, if any.
+ * Only same-site paths are honoured, so a crafted `?next=` cannot bounce someone
+ * to another origin.
+ */
+function postLoginPath(): string {
+  const next = new URLSearchParams(window.location.search).get("next");
+  if (next && next.startsWith("/") && !next.startsWith("//")) {
+    return next;
+  }
+  return "/";
+}
+
+/**
  * Holds the signed-in user for the whole app.
  *
  * The user object is cached in localStorage purely so the first paint after a
@@ -50,21 +63,19 @@ export default function AuthProvider({
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const token = tokenStorage.get();
-    if (!token) {
-      setLoading(false);
-      return;
-    }
+    // With no token there is nothing to verify. Every state update below happens
+    // in a promise callback, never synchronously in the effect body.
+    const session = tokenStorage.get()
+      ? api.get<User>("/api/auth/me")
+      : Promise.resolve(null);
 
-    setUser(userStorage.get<User>());
-    setOrganizationName(
-      window.localStorage.getItem(ORGANIZATION_STORAGE_KEY),
-    );
-
-    api
-      .get<User>("/api/auth/me")
+    session
       .then((response) => {
+        if (!response) return;
         setUser(response.data);
+        setOrganizationName(
+          window.localStorage.getItem(ORGANIZATION_STORAGE_KEY),
+        );
         userStorage.set(response.data);
       })
       .catch(() => {
@@ -94,7 +105,7 @@ export default function AuthProvider({
         password,
       });
       applySession(response.data);
-      router.push("/");
+      router.push(postLoginPath());
     },
     [applySession, router],
   );

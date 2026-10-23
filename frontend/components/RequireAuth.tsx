@@ -1,8 +1,10 @@
 "use client";
 
 import { useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
+import { Lock } from "lucide-react";
 import { useAuth } from "./AuthProvider";
+import { LoadingDots, Screws } from "./ui";
 import type { Role } from "../lib/types";
 
 /**
@@ -22,27 +24,19 @@ export default function RequireAuth({
 }) {
   const { user, loading } = useAuth();
   const router = useRouter();
+  const pathname = usePathname();
 
   useEffect(() => {
     if (!loading && !user) {
-      router.replace("/login");
+      const next = pathname && pathname !== "/" ? `?next=${encodeURIComponent(pathname)}` : "";
+      router.replace(`/login${next}`);
     }
-  }, [loading, user, router]);
+  }, [loading, user, router, pathname]);
 
   if (loading) {
     return (
-      <div className="flex h-screen items-center justify-center bg-[#0a0f1c]">
-        <div className="flex items-center gap-3 text-slate-400">
-          <span className="h-2 w-2 animate-bounce rounded-full bg-[#2563eb]" />
-          <span
-            className="h-2 w-2 animate-bounce rounded-full bg-[#2563eb]"
-            style={{ animationDelay: "0.15s" }}
-          />
-          <span
-            className="h-2 w-2 animate-bounce rounded-full bg-[#2563eb]"
-            style={{ animationDelay: "0.3s" }}
-          />
-        </div>
+      <div className="flex h-screen items-center justify-center">
+        <LoadingDots label="Checking your session" />
       </div>
     );
   }
@@ -53,14 +47,18 @@ export default function RequireAuth({
 
   if (roles && !roles.includes(user.role)) {
     return (
-      <div className="flex h-screen items-center justify-center bg-[#0a0f1c] p-6">
-        <div className="glass-panel max-w-md p-8 text-center">
-          <h2 className="mb-2 text-lg font-semibold text-white">
+      <div className="flex h-screen items-center justify-center p-6">
+        <div className="surface rise relative max-w-md px-10 py-10 text-center">
+          <Screws />
+          <div className="well mx-auto mb-5 grid h-14 w-14 place-items-center rounded-full">
+            <Lock className="h-6 w-6 text-led-amber" />
+          </div>
+          <h2 className="embossed mb-2 text-lg font-semibold">
             Not available for your role
           </h2>
-          <p className="text-sm text-slate-400">
-            This section is limited to {roles.join(" and ").toLowerCase()} users.
-            You are signed in as {user.role.toLowerCase()}.
+          <p className="engraved text-sm">
+            This section is limited to {roles.join(" and ").toLowerCase()}{" "}
+            users. You are signed in as {user.role.toLowerCase()}.
           </p>
         </div>
       </div>

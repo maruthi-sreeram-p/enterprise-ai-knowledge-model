@@ -20,24 +20,22 @@ export default function SourceList({ sources }: { sources: SourceCitation[] }) {
   const consulted = sources.filter((source) => !source.cited);
 
   return (
-    <div className="mt-4 border-t border-slate-700/60 pt-3">
-      <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-slate-500">
-        Sources
-      </p>
+    <div className="mt-4 border-t border-black/60 pt-3 shadow-[0_-1px_0_rgba(255,255,255,0.05)]">
+      <p className="label mb-2">Sources</p>
 
-      <ul className="space-y-1.5">
+      <ul className="space-y-2">
         {cited.map((source) => (
           <SourceRow key={source.reference} source={source} emphasised />
         ))}
       </ul>
 
       {consulted.length > 0 && (
-        <details className="mt-2 group">
-          <summary className="cursor-pointer text-xs text-slate-500 transition-colors hover:text-slate-400">
+        <details className="group mt-3">
+          <summary className="engraved cursor-pointer text-xs transition-colors hover:text-ink">
             {consulted.length} more passage
             {consulted.length === 1 ? "" : "s"} searched but not cited
           </summary>
-          <ul className="mt-1.5 space-y-1.5">
+          <ul className="mt-2 space-y-2">
             {consulted.map((source) => (
               <SourceRow key={source.reference} source={source} />
             ))}
@@ -57,26 +55,26 @@ function SourceRow({
 }) {
   return (
     <li
-      className={`flex items-start gap-2 rounded-lg px-2 py-1.5 text-xs ${
-        emphasised ? "bg-slate-800/60" : ""
+      className={`flex items-start gap-2.5 rounded-lg px-2.5 py-2 text-xs ${
+        emphasised ? "plate" : ""
       }`}
     >
-      <span className="mt-0.5 shrink-0 font-mono text-[#60a5fa]">
+      <span className="readout mt-0.5 shrink-0 text-[11px]">
         [{source.reference}]
       </span>
-      <FileText className="mt-0.5 h-3.5 w-3.5 shrink-0 text-slate-500" />
+      <FileText className="mt-0.5 h-3.5 w-3.5 shrink-0 text-ink-dim" />
       <span className="min-w-0">
-        <span className="font-medium text-slate-300">{source.fileName}</span>
+        <span className="font-semibold text-ink">{source.fileName}</span>
         {/* Loose `!= null` on purpose: it catches both null and undefined. The
             API omits pageNumber entirely when a format has no pages, so a strict
             `!== null` check would treat "absent" as "present" and render an
             empty page number — which is exactly the fabricated citation this
             feature exists to prevent. */}
         {source.pageNumber != null ? (
-          <span className="text-slate-500"> · page {source.pageNumber}</span>
+          <span className="text-ink-muted"> · page {source.pageNumber}</span>
         ) : (
           <span
-            className="text-slate-600"
+            className="text-ink-dim"
             title="This file format has no page numbers, so none is reported."
           >
             {" "}
@@ -84,7 +82,7 @@ function SourceRow({
           </span>
         )}
         {source.excerpt && (
-          <span className="mt-0.5 block leading-relaxed text-slate-500">
+          <span className="mt-1 block leading-relaxed text-ink-dim">
             {source.excerpt}
           </span>
         )}

@@ -4,6 +4,8 @@ import { useCallback, useEffect, useState } from "react";
 import { Trash2, UserPlus } from "lucide-react";
 import AppShell from "../../components/AppShell";
 import RequireAuth from "../../components/RequireAuth";
+import { Alert, PageHeader } from "../../components/ui";
+import { PasswordField, TextField } from "../../components/fields";
 import { useAuth } from "../../components/AuthProvider";
 import { api, errorMessage } from "../../lib/api";
 import type { AuditLog, Page, Role, User } from "../../lib/types";
@@ -24,50 +26,35 @@ function AdminWorkspace() {
   const [tab, setTab] = useState<Tab>("users");
 
   return (
-    <div className="hide-scrollbar h-full overflow-y-auto p-6 md:p-8">
-      <div className="mx-auto max-w-5xl">
-        <header className="mb-5">
-          <h1 className="text-xl font-bold text-white">Administration</h1>
-          <p className="mt-1 text-sm text-slate-500">
-            Manage the people in your organization and review what has happened.
-          </p>
-        </header>
+    <div className="h-full overflow-y-auto pr-1">
+      <div className="mx-auto max-w-5xl p-3 md:p-5">
+        <PageHeader
+          title="Administration"
+          subtitle="Manage the people in your organization and review what has happened."
+        />
 
-        <div className="mb-5 flex gap-1 border-b border-slate-800">
-          <TabButton active={tab === "users"} onClick={() => setTab("users")}>
+        <div role="tablist" className="well switch mb-6">
+          <button
+            role="tab"
+            aria-selected={tab === "users"}
+            onClick={() => setTab("users")}
+            className="switch-key"
+          >
             Users
-          </TabButton>
-          <TabButton active={tab === "audit"} onClick={() => setTab("audit")}>
+          </button>
+          <button
+            role="tab"
+            aria-selected={tab === "audit"}
+            onClick={() => setTab("audit")}
+            className="switch-key"
+          >
             Audit log
-          </TabButton>
+          </button>
         </div>
 
         {tab === "users" ? <UsersPanel /> : <AuditPanel />}
       </div>
     </div>
-  );
-}
-
-function TabButton({
-  active,
-  onClick,
-  children,
-}: {
-  active: boolean;
-  onClick: () => void;
-  children: React.ReactNode;
-}) {
-  return (
-    <button
-      onClick={onClick}
-      className={`-mb-px border-b-2 px-4 py-2.5 text-sm transition-colors ${
-        active
-          ? "border-[#2563eb] font-medium text-[#60a5fa]"
-          : "border-transparent text-slate-500 hover:text-slate-300"
-      }`}
-    >
-      {children}
-    </button>
   );
 }
 
@@ -97,8 +84,11 @@ function UsersPanel() {
   }, []);
 
   useEffect(() => {
-    void loadUsers();
-  }, [loadUsers]);
+    api
+      .get<Page<User>>("/api/users", { params: { size: 100 } })
+      .then((response) => setUsers(response.data.content))
+      .catch((caught) => setError(errorMessage(caught)));
+  }, []);
 
   const handleCreate = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -142,20 +132,13 @@ function UsersPanel() {
   };
 
   return (
-    <div>
-      {error && (
-        <div
-          role="alert"
-          className="mb-4 rounded-lg border border-red-500/40 bg-red-500/10 px-4 py-3 text-sm text-red-300"
-        >
-          {error}
-        </div>
-      )}
+    <div className="space-y-5">
+      {error && <Alert>{error}</Alert>}
 
-      <div className="mb-4">
+      <div>
         <button
           onClick={() => setShowForm((previous) => !previous)}
-          className="btn-primary px-4 py-2.5 text-sm"
+          className={`btn ${showForm ? "" : "btn-primary"}`}
         >
           <UserPlus className="h-4 w-4" />
           {showForm ? "Cancel" : "Add user"}
@@ -163,117 +146,121 @@ function UsersPanel() {
       </div>
 
       {showForm && (
-        <form onSubmit={handleCreate} className="glass-panel mb-5 space-y-4 p-5">
-          <div className="grid gap-4 sm:grid-cols-2">
-            <Field label="Name">
-              <input
-                type="text"
-                required
-                value={name}
-                onChange={(event) => setName(event.target.value)}
-                className={inputClass}
-              />
-            </Field>
-            <Field label="Email">
-              <input
-                type="email"
-                required
-                value={email}
-                onChange={(event) => setEmail(event.target.value)}
-                className={inputClass}
-              />
-            </Field>
-            <Field label="Temporary password">
-              <input
-                type="password"
-                required
-                minLength={8}
-                maxLength={72}
-                value={password}
-                onChange={(event) => setPassword(event.target.value)}
-                placeholder="At least 8 characters"
-                className={inputClass}
-              />
-            </Field>
-            <Field label="Role">
+        <form onSubmit={handleCreate} className="surface rise space-y-5 p-6">
+          <div className="grid gap-5 sm:grid-cols-2">
+            <TextField
+              label="Name"
+              type="text"
+              required
+              value={name}
+              onChange={(event) => setName(event.target.value)}
+            />
+            <TextField
+              label="Email"
+              type="email"
+              required
+              value={email}
+              onChange={(event) => setEmail(event.target.value)}
+            />
+            <PasswordField
+              label="Temporary password"
+              required
+              minLength={8}
+              maxLength={72}
+              autoComplete="new-password"
+              value={password}
+              onChange={(event) => setPassword(event.target.value)}
+              placeholder="At least 8 characters"
+            />
+            <div>
+              <label htmlFor="new-user-role" className="label mb-2 ml-1 block">
+                Role
+              </label>
               <select
+                id="new-user-role"
                 value={role}
                 onChange={(event) => setRole(event.target.value as Role)}
-                className={inputClass}
+                className="input"
               >
                 <option value="EMPLOYEE">Employee</option>
                 <option value="MANAGER">Manager</option>
                 <option value="ADMIN">Admin</option>
               </select>
-            </Field>
+            </div>
           </div>
 
           <button
             type="submit"
             disabled={submitting}
-            className="btn-primary px-5 py-2.5 text-sm disabled:opacity-60"
+            className="btn btn-primary"
           >
             {submitting ? "Creating…" : "Create user"}
           </button>
         </form>
       )}
 
-      <div className="glass-panel overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm">
-            <thead className="border-b border-slate-700/60 text-xs uppercase tracking-wider text-slate-500">
-              <tr>
-                <th className="px-4 py-3 font-semibold">Name</th>
-                <th className="px-4 py-3 font-semibold">Email</th>
-                <th className="px-4 py-3 font-semibold">Role</th>
-                <th className="px-4 py-3" />
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-800">
-              {users.map((entry) => {
-                const isSelf = entry.id === currentUser?.id;
-                return (
-                  <tr key={entry.id} className="hover:bg-slate-800/30">
-                    <td className="px-4 py-3 font-medium text-slate-200">
-                      {entry.name}
-                      {isSelf && (
-                        <span className="ml-2 text-xs text-slate-600">
-                          (you)
-                        </span>
-                      )}
-                    </td>
-                    <td className="px-4 py-3 text-slate-400">{entry.email}</td>
-                    <td className="px-4 py-3">
-                      <select
-                        value={entry.role}
-                        onChange={(event) =>
-                          handleRoleChange(entry, event.target.value as Role)
-                        }
-                        className="rounded border border-slate-700 bg-slate-900/60 px-2 py-1 text-xs text-slate-300 focus:outline-none focus:ring-1 focus:ring-[#2563eb]"
-                      >
-                        <option value="EMPLOYEE">Employee</option>
-                        <option value="MANAGER">Manager</option>
-                        <option value="ADMIN">Admin</option>
-                      </select>
-                    </td>
-                    <td className="px-4 py-3 text-right">
-                      {/* The server refuses this too; hiding it just avoids a
-                          pointless round trip and a confusing error. */}
-                      {!isSelf && (
-                        <button
-                          onClick={() => handleDelete(entry)}
-                          aria-label={`Remove ${entry.name}`}
-                          className="rounded-md p-1.5 text-slate-500 transition-colors hover:bg-slate-700 hover:text-red-400"
+      <div className="surface p-3">
+        <div className="well overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-sm">
+              <thead>
+                <tr className="border-b border-black/70 bg-white/[0.02]">
+                  <th className="label px-4 py-3">Name</th>
+                  <th className="label px-4 py-3">Email</th>
+                  <th className="label px-4 py-3">Role</th>
+                  <th className="px-4 py-3" />
+                </tr>
+              </thead>
+              <tbody>
+                {users.map((entry) => {
+                  const isSelf = entry.id === currentUser?.id;
+                  return (
+                    <tr
+                      key={entry.id}
+                      className="border-b border-white/[0.04] transition-colors last:border-0 hover:bg-white/[0.03]"
+                    >
+                      <td className="px-4 py-3 font-semibold text-ink">
+                        {entry.name}
+                        {isSelf && (
+                          <span className="engraved ml-2 text-xs font-normal">
+                            (you)
+                          </span>
+                        )}
+                      </td>
+                      <td className="px-4 py-3 text-ink-muted">{entry.email}</td>
+                      <td className="px-4 py-3">
+                        <select
+                          aria-label={`Role for ${entry.name}`}
+                          value={entry.role}
+                          onChange={(event) =>
+                            handleRoleChange(entry, event.target.value as Role)
+                          }
+                          className="input !w-auto !py-1.5 !text-xs"
                         >
-                          <Trash2 className="h-4 w-4" />
-                        </button>
-                      )}
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+                          <option value="EMPLOYEE">Employee</option>
+                          <option value="MANAGER">Manager</option>
+                          <option value="ADMIN">Admin</option>
+                        </select>
+                      </td>
+                      <td className="px-4 py-3 text-right">
+                        {/* The server refuses this too; hiding it just avoids a
+                            pointless round trip and a confusing error. */}
+                        {!isSelf && (
+                          <button
+                            onClick={() => handleDelete(entry)}
+                            aria-label={`Remove ${entry.name}`}
+                            className="btn btn-sm btn-icon btn-danger"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
     </div>
@@ -298,25 +285,18 @@ function AuditPanel() {
   }, [action]);
 
   return (
-    <div>
-      {error && (
-        <div
-          role="alert"
-          className="mb-4 rounded-lg border border-red-500/40 bg-red-500/10 px-4 py-3 text-sm text-red-300"
-        >
-          {error}
-        </div>
-      )}
+    <div className="space-y-4">
+      {error && <Alert>{error}</Alert>}
 
-      <div className="mb-4 flex items-center gap-3">
-        <label htmlFor="action-filter" className="text-sm text-slate-400">
+      <div className="flex items-center gap-3">
+        <label htmlFor="action-filter" className="label">
           Filter
         </label>
         <select
           id="action-filter"
           value={action}
           onChange={(event) => setAction(event.target.value)}
-          className="rounded-lg border border-slate-600 bg-slate-900/50 px-3 py-2 text-sm text-slate-200 focus:outline-none focus:ring-2 focus:ring-[#2563eb]"
+          className="input !w-auto !py-2 text-sm"
         >
           <option value="">All actions</option>
           <option value="LOGIN">Login</option>
@@ -331,80 +311,65 @@ function AuditPanel() {
         </select>
       </div>
 
-      <p className="mb-3 text-xs text-slate-600">
+      <p className="engraved text-xs">
         Question and answer text is not recorded by default, because it can
         contain confidential document content. What is recorded is who asked,
         when, and which documents were cited.
       </p>
 
-      <div className="glass-panel overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm">
-            <thead className="border-b border-slate-700/60 text-xs uppercase tracking-wider text-slate-500">
-              <tr>
-                <th className="px-4 py-3 font-semibold">When</th>
-                <th className="px-4 py-3 font-semibold">Who</th>
-                <th className="px-4 py-3 font-semibold">Action</th>
-                <th className="px-4 py-3 font-semibold">Details</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-800">
-              {logs.length === 0 && (
-                <tr>
-                  <td
-                    colSpan={4}
-                    className="px-4 py-10 text-center text-sm text-slate-600"
+      <div className="surface p-3">
+        <div className="well display overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-sm">
+              <thead>
+                <tr className="border-b border-black/70 bg-white/[0.02]">
+                  <th className="label px-4 py-3">When</th>
+                  <th className="label px-4 py-3">Who</th>
+                  <th className="label px-4 py-3">Action</th>
+                  <th className="label px-4 py-3">Details</th>
+                </tr>
+              </thead>
+              <tbody>
+                {logs.length === 0 && (
+                  <tr>
+                    <td
+                      colSpan={4}
+                      className="engraved px-4 py-10 text-center text-sm"
+                    >
+                      No audit records match this filter.
+                    </td>
+                  </tr>
+                )}
+                {logs.map((entry) => (
+                  <tr
+                    key={entry.id}
+                    className="border-b border-white/[0.04] transition-colors last:border-0 hover:bg-white/[0.03]"
                   >
-                    No audit records match this filter.
-                  </td>
-                </tr>
-              )}
-              {logs.map((entry) => (
-                <tr key={entry.id} className="hover:bg-slate-800/30">
-                  <td className="whitespace-nowrap px-4 py-3 text-xs text-slate-400">
-                    {new Date(entry.createdAt).toLocaleString()}
-                  </td>
-                  <td className="px-4 py-3 text-slate-300">
-                    {entry.userName ?? (
-                      <span className="text-slate-600">unknown</span>
-                    )}
-                  </td>
-                  <td className="px-4 py-3">
-                    <span className="rounded bg-slate-800 px-2 py-0.5 font-mono text-xs text-slate-300">
-                      {entry.action}
-                    </span>
-                  </td>
-                  <td className="max-w-md px-4 py-3">
-                    <span className="block truncate font-mono text-xs text-slate-500">
-                      {entry.metadata ?? "—"}
-                    </span>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+                    <td className="whitespace-nowrap px-4 py-3 font-mono text-xs text-ink-muted">
+                      {new Date(entry.createdAt).toLocaleString()}
+                    </td>
+                    <td className="px-4 py-3 text-ink">
+                      {entry.userName ?? (
+                        <span className="text-ink-dim">unknown</span>
+                      )}
+                    </td>
+                    <td className="px-4 py-3">
+                      <span className="plate inline-block rounded-md px-2 py-0.5 font-mono text-xs text-brass-hi">
+                        {entry.action}
+                      </span>
+                    </td>
+                    <td className="max-w-md px-4 py-3">
+                      <span className="block truncate font-mono text-xs text-ink-dim">
+                        {entry.metadata ?? "—"}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
-    </div>
-  );
-}
-
-const inputClass =
-  "w-full rounded-lg border border-slate-600 bg-slate-900/50 px-3 py-2.5 text-sm text-slate-200 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-[#2563eb]";
-
-function Field({
-  label,
-  children,
-}: {
-  label: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <div>
-      <label className="mb-1.5 block text-sm font-medium text-slate-300">
-        {label}
-      </label>
-      {children}
     </div>
   );
 }

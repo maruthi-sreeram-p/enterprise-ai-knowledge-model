@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import AppShell from "../../components/AppShell";
 import RequireAuth from "../../components/RequireAuth";
+import { Alert, Led, LoadingDots, PageHeader, Screws } from "../../components/ui";
 import { useAuth } from "../../components/AuthProvider";
 import { api, errorMessage } from "../../lib/api";
 import type { DashboardSummary } from "../../lib/types";
@@ -38,42 +39,35 @@ function DashboardWorkspace() {
   }, []);
 
   return (
-    <div className="hide-scrollbar h-full overflow-y-auto p-6 md:p-8">
-      <div className="mx-auto max-w-5xl">
-        <header className="mb-6">
-          <h1 className="text-xl font-bold text-white">
-            {organizationName ?? "Dashboard"}
-          </h1>
-          <p className="mt-1 text-sm text-slate-500">
-            Signed in as {user?.name} · {user?.role?.toLowerCase()}
-          </p>
-        </header>
+    <div className="h-full overflow-y-auto pr-1">
+      <div className="mx-auto max-w-5xl p-3 md:p-5">
+        <PageHeader
+          title={organizationName ?? "Dashboard"}
+          subtitle={`Signed in as ${user?.name} · ${user?.role?.toLowerCase()}`}
+        />
 
         {error && (
-          <div
-            role="alert"
-            className="mb-5 rounded-lg border border-red-500/40 bg-red-500/10 px-4 py-3 text-sm text-red-300"
-          >
-            {error}
+          <div className="mb-5">
+            <Alert>{error}</Alert>
           </div>
         )}
 
         {summary && (
           <>
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              <MetricCard
+            <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
+              <Meter
                 icon={FileText}
                 label="Documents"
                 value={summary.totalDocuments}
                 hint="Visible to your role"
               />
-              <MetricCard
+              <Meter
                 icon={CheckCircle2}
                 label="Indexed"
                 value={summary.processedDocuments}
                 hint="Searchable right now"
               />
-              <MetricCard
+              <Meter
                 icon={AlertCircle}
                 label="Failed to index"
                 value={summary.failedDocuments}
@@ -84,19 +78,19 @@ function DashboardWorkspace() {
                 }
                 warning={summary.failedDocuments > 0}
               />
-              <MetricCard
+              <Meter
                 icon={Users}
                 label="People"
                 value={summary.totalUsers}
                 hint="In this organization"
               />
-              <MetricCard
+              <Meter
                 icon={MessageSquare}
                 label="Your conversations"
                 value={summary.myConversations}
                 hint="Private to you"
               />
-              <MetricCard
+              <Meter
                 icon={Sparkles}
                 label="Questions asked"
                 value={summary.totalAiQueries}
@@ -104,21 +98,20 @@ function DashboardWorkspace() {
               />
             </div>
 
-            <p className="mt-6 text-xs text-slate-600">
+            <p className="engraved mt-6 text-xs">
               Every figure is a live count from your organization&apos;s data.
             </p>
           </>
         )}
 
-        {!summary && !error && (
-          <p className="py-12 text-center text-sm text-slate-500">Loading…</p>
-        )}
+        {!summary && !error && <LoadingDots label="Loading figures" />}
       </div>
     </div>
   );
 }
 
-function MetricCard({
+/** An instrument: a labelled bezel around a glowing digital readout. */
+function Meter({
   icon: Icon,
   label,
   value,
@@ -132,17 +125,32 @@ function MetricCard({
   warning?: boolean;
 }) {
   return (
-    <div className="glass-panel p-5">
-      <div className="mb-3 flex items-center gap-2.5">
-        <Icon
-          className={`h-4 w-4 ${warning ? "text-red-400" : "text-[#60a5fa]"}`}
-        />
-        <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+    <div className="surface rise p-5 pb-6">
+      <Screws inset={8} />
+      <div className="mb-3 flex items-center justify-between px-3">
+        <span className="label flex items-center gap-2">
+          <Icon className="h-3.5 w-3.5" />
           {label}
         </span>
+        <Led color={warning ? "red" : "green"} pulse={warning} />
       </div>
-      <p className="text-3xl font-bold text-white">{value}</p>
-      <p className="mt-1 text-xs text-slate-600">{hint}</p>
+
+      <div className="well display px-4 py-5 text-right">
+        <p
+          className={`readout text-5xl font-bold leading-none ${
+            warning ? "!text-led-red" : ""
+          }`}
+          style={
+            warning
+              ? { textShadow: "0 0 8px rgba(248,113,113,.7), 0 0 20px rgba(248,113,113,.3)" }
+              : undefined
+          }
+        >
+          {String(value).padStart(3, "0")}
+        </p>
+      </div>
+
+      <p className="engraved mt-3 px-1 text-xs">{hint}</p>
     </div>
   );
 }

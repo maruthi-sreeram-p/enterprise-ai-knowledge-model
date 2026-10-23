@@ -1,61 +1,537 @@
 @import "tailwindcss";
 
-@keyframes pulseGlow {
-  0% {
-    opacity: 0.4;
-    transform: scale(1);
-  }
-  100% {
-    opacity: 0.8;
-    transform: scale(1.05);
-  }
+/* =============================================================================
+   Skeuomorphic dark theme
+
+   The interface is built like a piece of hardware: raised metal panels, recessed
+   wells that hold content, keys that physically depress, LEDs that report state,
+   and brass trim. Light always comes from the top, so every raised surface has a
+   highlight on its upper edge and every recessed one has a shadow on it.
+   ========================================================================== */
+
+@theme {
+  --font-sans: ui-sans-serif, "Segoe UI Variable", "Segoe UI", system-ui,
+    -apple-system, "Helvetica Neue", Arial, sans-serif;
+  --font-mono: ui-monospace, "Cascadia Mono", "SF Mono", Consolas, monospace;
+
+  --color-ink: #ebe8e0;
+  --color-ink-muted: #a8a49a;
+  --color-ink-dim: #77746b;
+
+  --color-brass: #d4a24c;
+  --color-brass-hi: #f3cf85;
+  --color-brass-lo: #8a6420;
+
+  --color-led-green: #4ade80;
+  --color-led-red: #f87171;
+  --color-led-amber: #fbbf24;
+  --color-led-blue: #60a5fa;
 }
 
-@keyframes slideUp {
-  0% {
-    transform: translateY(20px);
-    opacity: 0;
-  }
-  100% {
-    transform: translateY(0);
-    opacity: 1;
-  }
+:root {
+  color-scheme: dark;
+
+  /* A faint speckle laid over metal and leather so large gradients do not look
+     like flat digital fills. */
+  --grain: url("data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 .1 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+
+  --edge-dark: #060708;
+  --metal-top: #2e3138;
+  --metal-bottom: #1b1d22;
 }
 
-@layer utilities {
-  .animate-pulse-glow {
-    animation: pulseGlow 3s infinite alternate;
-  }
-
-  .animate-slide-up {
-    animation: slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-  }
-
-  /* Applied to individual scroll containers rather than globally, so the page
-     still scrolls with a keyboard and a trackpad while the chrome stays clean. */
-  .hide-scrollbar {
-    scrollbar-width: none;
-    -ms-overflow-style: none;
-  }
-
-  .hide-scrollbar::-webkit-scrollbar {
-    display: none;
-  }
-
-  .glass-panel {
-    @apply rounded-2xl border border-slate-700/50 bg-[rgba(17,25,40,0.75)] shadow-[0_8px_32px_0_rgba(0,0,0,0.37)] backdrop-blur-xl;
-  }
-
-  .btn-primary {
-    @apply flex items-center justify-center gap-2 rounded-lg bg-[#2563eb] px-4 py-3 font-medium tracking-wide text-white transition-all duration-200 ease-in-out hover:bg-[#1d4ed8] active:scale-[0.98];
-  }
+html {
+  background: #08090b;
 }
 
 body {
-  @apply min-h-screen bg-[#0a0f1c] text-slate-200 antialiased selection:bg-[#2563eb] selection:text-white;
+  min-height: 100vh;
+  font-family: var(--font-sans);
+  color: var(--color-ink);
+  -webkit-font-smoothing: antialiased;
+  /* Brushed carbon: a soft vignette over a fine diagonal weave and grain. */
+  background:
+    radial-gradient(ellipse 90% 70% at 50% 0%, rgba(255, 255, 255, 0.05), transparent 60%),
+    var(--grain),
+    repeating-linear-gradient(45deg, rgba(255, 255, 255, 0.018) 0 2px, transparent 2px 4px),
+    repeating-linear-gradient(-45deg, rgba(0, 0, 0, 0.25) 0 2px, transparent 2px 4px),
+    #101114;
+  background-attachment: fixed;
 }
 
-/* Respect a reader who has asked for less motion. */
+::selection {
+  background: var(--color-brass);
+  color: #231704;
+}
+
+/* A slim machined scrollbar. */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #3b3e46 transparent;
+}
+*::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+*::-webkit-scrollbar-thumb {
+  background: linear-gradient(90deg, #3d4048, #2a2c32);
+  border: 2px solid transparent;
+  background-clip: padding-box;
+  border-radius: 999px;
+}
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(14px) scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes ledPulse {
+  0%,
+  100% {
+    filter: brightness(1);
+  }
+  50% {
+    filter: brightness(1.55);
+  }
+}
+
+@keyframes scan {
+  from {
+    background-position: 0 0;
+  }
+  to {
+    background-position: 0 4px;
+  }
+}
+
+@keyframes needle {
+  from {
+    transform: rotate(-70deg);
+  }
+}
+
+@layer components {
+  /* ---- Raised metal panel ------------------------------------------------ */
+  .surface {
+    position: relative;
+    border-radius: 18px;
+    border: 1px solid var(--edge-dark);
+    background:
+      linear-gradient(180deg, rgba(255, 255, 255, 0.06), transparent 45%),
+      var(--grain),
+      linear-gradient(180deg, var(--metal-top), var(--metal-bottom));
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.11),
+      inset 0 -1px 0 rgba(0, 0, 0, 0.65),
+      inset 1px 0 0 rgba(255, 255, 255, 0.03),
+      0 1px 0 rgba(255, 255, 255, 0.05),
+      0 22px 44px -16px rgba(0, 0, 0, 0.8),
+      0 6px 14px rgba(0, 0, 0, 0.5);
+  }
+
+  /* A smaller, flatter raised plate (cards inside a panel). */
+  .plate {
+    position: relative;
+    border-radius: 12px;
+    border: 1px solid var(--edge-dark);
+    background:
+      linear-gradient(180deg, rgba(255, 255, 255, 0.05), transparent 50%),
+      linear-gradient(180deg, #2a2d33, #212328);
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.09),
+      inset 0 -1px 0 rgba(0, 0, 0, 0.5),
+      0 6px 12px -4px rgba(0, 0, 0, 0.6);
+  }
+
+  /* ---- Recessed well: where content and input live --------------------- */
+  .well {
+    position: relative;
+    border-radius: 12px;
+    border: 1px solid #050506;
+    background: linear-gradient(180deg, #0a0b0d, #101114);
+    box-shadow:
+      inset 0 3px 8px rgba(0, 0, 0, 0.9),
+      inset 0 -1px 0 rgba(255, 255, 255, 0.04),
+      0 1px 0 rgba(255, 255, 255, 0.07);
+  }
+
+  /* An instrument display: a well with a faint scanline raster. */
+  .display {
+    background:
+      repeating-linear-gradient(0deg, rgba(255, 255, 255, 0.022) 0 1px, transparent 1px 4px),
+      linear-gradient(180deg, #08090b, #0e1013);
+    animation: scan 6s linear infinite;
+  }
+
+  /* ---- Text input -------------------------------------------------------- */
+  .input {
+    width: 100%;
+    border-radius: 12px;
+    border: 1px solid #050506;
+    background: linear-gradient(180deg, #08090b, #101114);
+    padding: 0.8rem 1rem;
+    color: var(--color-ink);
+    font-size: 0.95rem;
+    box-shadow:
+      inset 0 3px 8px rgba(0, 0, 0, 0.9),
+      inset 0 -1px 0 rgba(255, 255, 255, 0.04),
+      0 1px 0 rgba(255, 255, 255, 0.08);
+    transition: box-shadow 0.15s ease;
+  }
+  .input::placeholder {
+    color: var(--color-ink-dim);
+  }
+  .input:focus {
+    outline: none;
+    box-shadow:
+      inset 0 3px 8px rgba(0, 0, 0, 0.9),
+      inset 0 -1px 0 rgba(255, 255, 255, 0.04),
+      0 0 0 2px rgba(212, 162, 76, 0.55),
+      0 0 18px rgba(212, 162, 76, 0.25);
+  }
+  .input:disabled {
+    opacity: 0.55;
+  }
+  select.input {
+    appearance: none;
+    padding-right: 2.25rem;
+    background-image:
+      url("data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1.5 6 6.5l5-5' fill='none' stroke='%23a8a49a' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E"),
+      linear-gradient(180deg, #08090b, #101114);
+    background-repeat: no-repeat;
+    background-position: right 0.9rem center, 0 0;
+  }
+  select.input option {
+    background: #15171b;
+    color: var(--color-ink);
+  }
+
+  /* ---- Keys (buttons) ---------------------------------------------------- */
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    border-radius: 12px;
+    border: 1px solid #050506;
+    padding: 0.7rem 1.2rem;
+    font-size: 0.9rem;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    color: var(--color-ink);
+    text-shadow: 0 -1px 0 rgba(0, 0, 0, 0.7);
+    cursor: pointer;
+    user-select: none;
+    background:
+      linear-gradient(180deg, rgba(255, 255, 255, 0.1), transparent 50%),
+      linear-gradient(180deg, #454951, #2c2f36 55%, #25272d);
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.25),
+      inset 0 -2px 0 rgba(0, 0, 0, 0.35),
+      0 3px 0 #0a0b0d,
+      0 7px 12px -2px rgba(0, 0, 0, 0.6);
+    transition:
+      transform 0.07s ease,
+      box-shadow 0.07s ease,
+      filter 0.15s ease;
+  }
+  .btn:hover:not(:disabled) {
+    filter: brightness(1.12);
+  }
+  .btn:active:not(:disabled) {
+    transform: translateY(3px);
+    box-shadow:
+      inset 0 2px 6px rgba(0, 0, 0, 0.65),
+      0 0 0 #0a0b0d,
+      0 1px 2px rgba(0, 0, 0, 0.6);
+  }
+  .btn:focus-visible {
+    outline: 2px solid var(--color-brass-hi);
+    outline-offset: 3px;
+  }
+  .btn:disabled {
+    cursor: not-allowed;
+    opacity: 0.45;
+    filter: saturate(0.5);
+  }
+
+  .btn-primary {
+    color: #2a1b04;
+    text-shadow: 0 1px 0 rgba(255, 244, 214, 0.55);
+    border-color: #3d2a08;
+    background:
+      linear-gradient(180deg, rgba(255, 255, 255, 0.4), transparent 50%),
+      linear-gradient(180deg, #f6d68f, #d9a84d 55%, #b4852f);
+    box-shadow:
+      inset 0 1px 0 rgba(255, 248, 225, 0.8),
+      inset 0 -2px 0 rgba(90, 60, 10, 0.4),
+      0 3px 0 #5b3f0e,
+      0 8px 16px -2px rgba(0, 0, 0, 0.65),
+      0 0 22px rgba(212, 162, 76, 0.2);
+  }
+  .btn-primary:active:not(:disabled) {
+    box-shadow:
+      inset 0 2px 6px rgba(70, 45, 5, 0.6),
+      0 0 0 #5b3f0e,
+      0 1px 2px rgba(0, 0, 0, 0.6);
+  }
+
+  .btn-danger {
+    color: #ffe4e1;
+    border-color: #2a0806;
+    background:
+      linear-gradient(180deg, rgba(255, 255, 255, 0.16), transparent 50%),
+      linear-gradient(180deg, #c2493f, #96302a 55%, #7b2520);
+    box-shadow:
+      inset 0 1px 0 rgba(255, 190, 180, 0.5),
+      inset 0 -2px 0 rgba(0, 0, 0, 0.35),
+      0 3px 0 #3a0e0b,
+      0 7px 12px -2px rgba(0, 0, 0, 0.6);
+  }
+
+  .btn-sm {
+    padding: 0.4rem 0.75rem;
+    font-size: 0.8rem;
+    border-radius: 9px;
+  }
+
+  .btn-icon {
+    padding: 0.5rem;
+    border-radius: 10px;
+  }
+
+  /* ---- LEDs -------------------------------------------------------------- */
+  .led {
+    --led: var(--color-led-green);
+    display: inline-block;
+    height: 10px;
+    width: 10px;
+    flex: none;
+    border-radius: 999px;
+    background: radial-gradient(
+      circle at 35% 30%,
+      rgba(255, 255, 255, 0.85),
+      var(--led) 38%,
+      color-mix(in srgb, var(--led) 45%, #000) 100%
+    );
+    box-shadow:
+      0 0 8px var(--led),
+      0 0 16px color-mix(in srgb, var(--led) 55%, transparent),
+      inset 0 -1px 2px rgba(0, 0, 0, 0.5),
+      0 0 0 2px #08090b,
+      0 0 0 3px rgba(255, 255, 255, 0.1);
+  }
+  .led-off {
+    background: radial-gradient(circle at 35% 30%, #4a4d55, #1c1e22 70%);
+    box-shadow:
+      inset 0 1px 2px rgba(0, 0, 0, 0.8),
+      0 0 0 2px #08090b,
+      0 0 0 3px rgba(255, 255, 255, 0.08);
+  }
+  .led-pulse {
+    animation: ledPulse 1.4s ease-in-out infinite;
+  }
+  .led-green {
+    --led: var(--color-led-green);
+  }
+  .led-red {
+    --led: var(--color-led-red);
+  }
+  .led-amber {
+    --led: var(--color-led-amber);
+  }
+  .led-blue {
+    --led: var(--color-led-blue);
+  }
+
+  /* ---- Fasteners --------------------------------------------------------- */
+  .screw {
+    position: absolute;
+    height: 11px;
+    width: 11px;
+    border-radius: 999px;
+    background: radial-gradient(circle at 35% 30%, #7a7e88, #3a3d44 55%, #17181c);
+    box-shadow:
+      inset 0 1px 1px rgba(255, 255, 255, 0.35),
+      0 1px 2px rgba(0, 0, 0, 0.9),
+      0 0 0 1px #0a0b0d;
+  }
+  .screw::after {
+    content: "";
+    position: absolute;
+    inset: 4.5px 1.5px;
+    background: #0d0e10;
+    border-radius: 1px;
+    box-shadow: 0 1px 0 rgba(255, 255, 255, 0.15);
+    transform: rotate(var(--turn, 35deg));
+  }
+
+  /* ---- Type treatments --------------------------------------------------- */
+  .engraved {
+    color: var(--color-ink-muted);
+    text-shadow:
+      0 1px 0 rgba(255, 255, 255, 0.08),
+      0 -1px 0 rgba(0, 0, 0, 0.8);
+  }
+  .embossed {
+    color: var(--color-ink);
+    text-shadow:
+      0 1px 0 rgba(255, 255, 255, 0.12),
+      0 -1px 1px rgba(0, 0, 0, 0.9);
+  }
+  .label {
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--color-ink-dim);
+    text-shadow:
+      0 1px 0 rgba(255, 255, 255, 0.07),
+      0 -1px 0 rgba(0, 0, 0, 0.8);
+  }
+  .readout {
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+    color: var(--color-led-amber);
+    text-shadow:
+      0 0 6px rgba(251, 191, 36, 0.65),
+      0 0 18px rgba(251, 191, 36, 0.3);
+  }
+
+  /* ---- Brass medallion --------------------------------------------------- */
+  .medallion {
+    display: grid;
+    place-items: center;
+    border-radius: 999px;
+    color: #2a1b04;
+    border: 1px solid #3d2a08;
+    background:
+      radial-gradient(circle at 32% 25%, #fff3cc, #e3b55e 32%, #b4852f 70%, #7a5513);
+    box-shadow:
+      inset 0 2px 3px rgba(255, 250, 230, 0.8),
+      inset 0 -3px 5px rgba(80, 52, 8, 0.6),
+      0 0 0 4px #15171b,
+      0 0 0 5px rgba(255, 255, 255, 0.08),
+      0 10px 22px rgba(0, 0, 0, 0.7),
+      0 0 30px rgba(212, 162, 76, 0.18);
+  }
+
+  /* ---- Navigation key ---------------------------------------------------- */
+  .nav-key {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    border-radius: 11px;
+    border: 1px solid transparent;
+    padding: 0.62rem 0.8rem;
+    font-size: 0.88rem;
+    font-weight: 500;
+    color: var(--color-ink-muted);
+    transition:
+      color 0.15s,
+      background 0.15s;
+  }
+  .nav-key:hover {
+    color: var(--color-ink);
+    background: rgba(255, 255, 255, 0.04);
+  }
+  .nav-key[aria-current="page"] {
+    color: var(--color-brass-hi);
+    border-color: #050506;
+    background: linear-gradient(180deg, #0b0c0e, #141519);
+    box-shadow:
+      inset 0 3px 7px rgba(0, 0, 0, 0.9),
+      0 1px 0 rgba(255, 255, 255, 0.07);
+  }
+
+  /* ---- Segmented switch (tabs) ------------------------------------------ */
+  .switch {
+    display: inline-flex;
+    gap: 4px;
+    padding: 4px;
+  }
+  .switch-key {
+    border-radius: 9px;
+    padding: 0.45rem 1.1rem;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--color-ink-muted);
+    transition: color 0.15s;
+  }
+  .switch-key:hover {
+    color: var(--color-ink);
+  }
+  .switch-key[aria-selected="true"] {
+    color: #2a1b04;
+    text-shadow: 0 1px 0 rgba(255, 244, 214, 0.5);
+    border: 1px solid #3d2a08;
+    background: linear-gradient(180deg, #f3d28a, #cf9d45 60%, #b4852f);
+    box-shadow:
+      inset 0 1px 0 rgba(255, 248, 225, 0.75),
+      0 2px 0 #5b3f0e,
+      0 4px 8px rgba(0, 0, 0, 0.5);
+  }
+
+  /* ---- Leather message with stitching ----------------------------------- */
+  .leather {
+    position: relative;
+    border-radius: 18px;
+    border: 1px solid #1a0e06;
+    color: #f4e6d2;
+    background:
+      var(--grain),
+      linear-gradient(180deg, rgba(255, 255, 255, 0.08), transparent 40%),
+      linear-gradient(180deg, #6a4527, #4a2f19);
+    box-shadow:
+      inset 0 1px 0 rgba(255, 220, 170, 0.28),
+      inset 0 -2px 4px rgba(0, 0, 0, 0.4),
+      0 10px 18px -6px rgba(0, 0, 0, 0.7);
+  }
+  .leather::before {
+    content: "";
+    position: absolute;
+    inset: 5px;
+    border-radius: 13px;
+    border: 1.5px dashed rgba(255, 222, 170, 0.32);
+    pointer-events: none;
+  }
+
+  .rise {
+    animation: rise 0.45s cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+
+  /* Warning plate: an engraved red-lit label rather than a flat banner. */
+  .alert {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+    border-radius: 12px;
+    border: 1px solid #050506;
+    padding: 0.8rem 1rem;
+    font-size: 0.85rem;
+    line-height: 1.45;
+    background: linear-gradient(180deg, #0a0b0d, #121316);
+    box-shadow:
+      inset 0 3px 8px rgba(0, 0, 0, 0.9),
+      0 1px 0 rgba(255, 255, 255, 0.07);
+  }
+  .alert-error {
+    color: #fecaca;
+  }
+  .alert-info {
+    color: #bfdbfe;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

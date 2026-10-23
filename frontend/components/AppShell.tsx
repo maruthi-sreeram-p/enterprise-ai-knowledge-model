@@ -10,6 +10,7 @@ import {
   ShieldCheck,
 } from "lucide-react";
 import { useAuth } from "./AuthProvider";
+import { Led, Logo, RoleBadge, Screws } from "./ui";
 import type { Role } from "../lib/types";
 
 interface NavItem {
@@ -27,7 +28,7 @@ const NAV_ITEMS: NavItem[] = [
 ];
 
 /**
- * The navigation rail shared by every signed-in page.
+ * The control panel shared by every signed-in page.
  *
  * Items a user's role cannot use are hidden rather than shown disabled, since
  * there is nothing they could do to gain access from here.
@@ -40,84 +41,87 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     (item) => !item.roles || (user && item.roles.includes(user.role)),
   );
 
+  const isActive = (href: string) =>
+    href === "/" ? pathname === "/" : pathname.startsWith(href);
+
   return (
-    <div className="flex h-screen overflow-hidden bg-[#0a0f1c]">
-      <nav className="hidden w-56 flex-col border-r border-slate-800 bg-[#0d1424] md:flex">
-        <div className="border-b border-slate-800 px-5 py-5">
-          <p className="text-sm font-bold tracking-tight text-white">
-            Enterprise AI
-          </p>
-          <p className="mt-0.5 truncate text-xs text-slate-500">
-            {organizationName ?? "Knowledge Base"}
-          </p>
-        </div>
+    <div className="flex h-screen gap-3 overflow-hidden p-3">
+      <nav
+        aria-label="Primary"
+        className="surface hidden w-60 shrink-0 flex-col px-3 pb-8 pt-7 md:flex"
+      >
+        <Screws inset={9} />
 
-        <ul className="flex-1 space-y-1 p-3">
-          {visibleItems.map((item) => {
-            const active =
-              item.href === "/"
-                ? pathname === "/"
-                : pathname.startsWith(item.href);
-            const Icon = item.icon;
-
-            return (
-              <li key={item.href}>
-                <Link
-                  href={item.href}
-                  className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-colors ${
-                    active
-                      ? "bg-[#2563eb]/15 font-medium text-[#60a5fa]"
-                      : "text-slate-400 hover:bg-slate-800/60 hover:text-slate-200"
-                  }`}
-                >
-                  <Icon className="h-4 w-4 shrink-0" />
-                  {item.label}
-                </Link>
-              </li>
-            );
-          })}
-        </ul>
-
-        <div className="border-t border-slate-800 p-3">
-          <div className="mb-2 px-2">
-            <p className="truncate text-sm font-medium text-slate-200">
-              {user?.name}
+        <div className="mb-5 flex items-center gap-3 px-2">
+          <Logo size={44} />
+          <div className="min-w-0">
+            <p className="embossed text-sm font-bold leading-tight">
+              Enterprise AI
             </p>
-            <p className="truncate text-xs text-slate-500">{user?.email}</p>
-            <span className="mt-1.5 inline-block rounded bg-slate-800 px-2 py-0.5 text-[10px] font-semibold tracking-wide text-slate-400">
-              {user?.role}
-            </span>
+            <p className="engraved truncate text-xs">
+              {organizationName ?? "Knowledge Base"}
+            </p>
           </div>
-          <button
-            onClick={logout}
-            className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-slate-400 transition-colors hover:bg-slate-800/60 hover:text-red-400"
-          >
-            <LogOut className="h-4 w-4" />
-            Sign out
-          </button>
         </div>
-      </nav>
 
-      {/* On small screens the rail collapses to a horizontal bar rather than a
-          drawer, which keeps every destination reachable in one tap. */}
-      <div className="flex min-w-0 flex-1 flex-col">
-        <div className="flex items-center gap-1 overflow-x-auto border-b border-slate-800 bg-[#0d1424] px-2 py-2 md:hidden">
+        <p className="label mb-2 px-3">Navigate</p>
+        <div className="well mb-4 flex-1 space-y-1 p-2">
           {visibleItems.map((item) => {
-            const active =
-              item.href === "/"
-                ? pathname === "/"
-                : pathname.startsWith(item.href);
             const Icon = item.icon;
-
+            const active = isActive(item.href);
             return (
               <Link
                 key={item.href}
                 href={item.href}
-                className={`flex shrink-0 items-center gap-2 rounded-lg px-3 py-2 text-xs ${
-                  active
-                    ? "bg-[#2563eb]/15 text-[#60a5fa]"
-                    : "text-slate-400"
-                }`}
+                aria-current={active ? "page" : undefined}
+                className="nav-key"
+              >
+                <Icon className="h-4 w-4 shrink-0" />
+                <span className="flex-1">{item.label}</span>
+                <Led on={active} color="amber" />
+              </Link>
+            );
+          })}
+        </div>
+
+        <div className="plate p-3">
+          <div className="flex items-center gap-3">
+            <div className="medallion h-9 w-9 shrink-0 text-sm font-bold">
+              {user?.name?.charAt(0).toUpperCase()}
+            </div>
+            <div className="min-w-0">
+              <p className="embossed truncate text-sm font-semibold">
+                {user?.name}
+              </p>
+              <p className="engraved truncate text-xs">{user?.email}</p>
+            </div>
+          </div>
+          <div className="mt-3 flex items-center justify-between">
+            {user && <RoleBadge role={user.role} />}
+            <button onClick={logout} className="btn btn-sm">
+              <LogOut className="h-3.5 w-3.5" />
+              Sign out
+            </button>
+          </div>
+        </div>
+      </nav>
+
+      <div className="flex min-w-0 flex-1 flex-col gap-3">
+        {/* On small screens the rail collapses to a strip of keys, which keeps
+            every destination reachable in one tap. */}
+        <nav
+          aria-label="Primary"
+          className="surface flex items-center gap-1 overflow-x-auto p-2 md:hidden"
+        >
+          {visibleItems.map((item) => {
+            const Icon = item.icon;
+            const active = isActive(item.href);
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                aria-current={active ? "page" : undefined}
+                className="nav-key shrink-0 !gap-2 !px-3"
               >
                 <Icon className="h-4 w-4" />
                 {item.label}
@@ -126,11 +130,12 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           })}
           <button
             onClick={logout}
-            className="ml-auto shrink-0 rounded-lg px-3 py-2 text-xs text-slate-400"
+            aria-label="Sign out"
+            className="btn btn-sm btn-icon ml-auto shrink-0"
           >
             <LogOut className="h-4 w-4" />
           </button>
-        </div>
+        </nav>
 
         <main className="min-h-0 flex-1 overflow-hidden">{children}</main>
       </div>
