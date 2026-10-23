@@ -1,18 +1,18 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Building2, KeyRound, Mail, Rocket, User as UserIcon } from "lucide-react";
-import AuthShell from "../../components/AuthShell";
+import AuthShell from "../../../components/AuthShell";
+import { StageLink } from "../../../components/AuthStage";
 import {
   PasswordField,
   StrengthMeter,
   TextField,
-} from "../../components/fields";
-import { Alert } from "../../components/ui";
-import { useAuth } from "../../components/AuthProvider";
-import { errorMessage } from "../../lib/api";
+} from "../../../components/fields";
+import { Alert } from "../../../components/ui";
+import { useAuth } from "../../../components/AuthProvider";
+import { errorMessage } from "../../../lib/api";
 
 /**
  * Registers a new organization together with its first administrator.
@@ -65,17 +65,18 @@ export default function RegisterPage() {
 
   return (
     <AuthShell
+      wide
       title="Create a workspace"
       subtitle="You will be this organization's first administrator"
       footer={
         <>
           Already have an account?{" "}
-          <Link
+          <StageLink
             href="/login"
             className="font-semibold text-brass transition-colors hover:text-brass-hi"
           >
             Sign in
-          </Link>
+          </StageLink>
         </>
       }
     >

@@ -134,7 +134,7 @@ export default function AuthProvider({
     window.localStorage.removeItem(ORGANIZATION_STORAGE_KEY);
     setUser(null);
     setOrganizationName(null);
-    router.push("/login");
+    router.push("/welcome");
   }, [router]);
 
   const hasRole = useCallback(

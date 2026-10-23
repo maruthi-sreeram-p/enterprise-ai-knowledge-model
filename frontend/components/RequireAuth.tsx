@@ -29,7 +29,7 @@ export default function RequireAuth({
   useEffect(() => {
     if (!loading && !user) {
       const next = pathname && pathname !== "/" ? `?next=${encodeURIComponent(pathname)}` : "";
-      router.replace(`/login${next}`);
+      router.replace(`/welcome${next}`);
     }
   }, [loading, user, router, pathname]);
 

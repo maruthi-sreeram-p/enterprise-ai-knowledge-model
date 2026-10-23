@@ -1,14 +1,14 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { KeyRound, LogIn, Mail } from "lucide-react";
-import AuthShell from "../../components/AuthShell";
-import { PasswordField, TextField } from "../../components/fields";
-import { Alert } from "../../components/ui";
-import { useAuth } from "../../components/AuthProvider";
-import { errorMessage } from "../../lib/api";
+import AuthShell from "../../../components/AuthShell";
+import { StageLink } from "../../../components/AuthStage";
+import { PasswordField, TextField } from "../../../components/fields";
+import { Alert } from "../../../components/ui";
+import { useAuth } from "../../../components/AuthProvider";
+import { errorMessage } from "../../../lib/api";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -45,12 +45,12 @@ export default function LoginPage() {
       footer={
         <>
           Need a workspace for your organization?{" "}
-          <Link
+          <StageLink
             href="/register"
             className="font-semibold text-brass transition-colors hover:text-brass-hi"
           >
             Create one
-          </Link>
+          </StageLink>
         </>
       }
     >
