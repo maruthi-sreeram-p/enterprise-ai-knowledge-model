@@ -1,28 +1,5 @@
 import { AlertTriangle, BookOpenText, Info } from "lucide-react";
 
-/** The four corner fasteners that make a panel look bolted down. */
-export function Screws({ inset = 10 }: { inset?: number }) {
-  const turns = ["20deg", "75deg", "140deg", "55deg"];
-  const positions = [
-    { top: inset, left: inset },
-    { top: inset, right: inset },
-    { bottom: inset, left: inset },
-    { bottom: inset, right: inset },
-  ];
-  return (
-    <>
-      {positions.map((position, index) => (
-        <span
-          key={index}
-          aria-hidden
-          className="screw"
-          style={{ ...position, ["--turn" as string]: turns[index] }}
-        />
-      ))}
-    </>
-  );
-}
-
 type LedColor = "green" | "red" | "amber" | "blue";
 
 export function Led({
@@ -85,24 +62,40 @@ export function Alert({
   );
 }
 
+/**
+ * Section opener: a tilted eyebrow tag, a big italic serif title
+ * and a line of context, closed by a gold hairline.
+ */
 export function PageHeader({
   title,
   subtitle,
+  eyebrow,
   action,
 }: {
   title: string;
   subtitle?: string;
+  eyebrow?: string;
   action?: React.ReactNode;
 }) {
   return (
-    <header className="mb-6 flex flex-wrap items-end justify-between gap-4">
-      <div>
-        <h1 className="embossed text-2xl font-bold tracking-tight">{title}</h1>
-        {subtitle && (
-          <p className="engraved mt-1 text-sm">{subtitle}</p>
-        )}
+    <header className="mb-10">
+      <div className="flex flex-wrap items-end justify-between gap-x-8 gap-y-4">
+        <div className="flex items-end gap-5 sm:gap-7">
+          <div className="pb-1">
+            {eyebrow && <p className="eyebrow mb-2">{eyebrow}</p>}
+            <h1 className="serif text-4xl font-extrabold italic leading-none tracking-tight sm:text-6xl">
+              {title}
+            </h1>
+            {subtitle && (
+              <p className="engraved mt-2 max-w-xl text-sm leading-relaxed">
+                {subtitle}
+              </p>
+            )}
+          </div>
+        </div>
+        {action}
       </div>
-      {action}
+      <hr className="rule-gold mt-8" />
     </header>
   );
 }
@@ -127,12 +120,9 @@ export function LoadingDots({ label = "Loading" }: { label?: string }) {
 
 export function RoleBadge({ role }: { role: string }) {
   const tone =
-    role === "ADMIN" ? "text-brass-hi" : role === "MANAGER" ? "text-led-blue" : "text-ink-muted";
+    role === "ADMIN" ? "text-brass" : role === "MANAGER" ? "text-led-blue" : "text-ink-dim";
   return (
-    <span
-      className={`well inline-block px-2 py-0.5 font-mono text-[10px] font-bold tracking-[0.14em] ${tone}`}
-      style={{ borderRadius: 6 }}
-    >
+    <span className={`text-[0.62rem] font-semibold tracking-[0.2em] ${tone}`}>
       {role}
     </span>
   );

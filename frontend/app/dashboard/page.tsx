@@ -11,7 +11,7 @@ import {
 } from "lucide-react";
 import AppShell from "../../components/AppShell";
 import RequireAuth from "../../components/RequireAuth";
-import { Alert, Led, LoadingDots, PageHeader, Screws } from "../../components/ui";
+import { Alert, Led, LoadingDots, PageHeader } from "../../components/ui";
 import { useAuth } from "../../components/AuthProvider";
 import { api, errorMessage } from "../../lib/api";
 import type { DashboardSummary } from "../../lib/types";
@@ -39,9 +39,10 @@ function DashboardWorkspace() {
   }, []);
 
   return (
-    <div className="h-full overflow-y-auto pr-1">
-      <div className="mx-auto max-w-5xl p-3 md:p-5">
+    <div className="h-full overflow-y-auto">
+      <div className="mx-auto max-w-6xl px-5 py-10 sm:px-8">
         <PageHeader
+          eyebrow="Overview"
           title={organizationName ?? "Dashboard"}
           subtitle={`Signed in as ${user?.name} · ${user?.role?.toLowerCase()}`}
         />
@@ -54,7 +55,7 @@ function DashboardWorkspace() {
 
         {summary && (
           <>
-            <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
               <Meter
                 icon={FileText}
                 label="Documents"
@@ -110,7 +111,10 @@ function DashboardWorkspace() {
   );
 }
 
-/** An instrument: a labelled bezel around a glowing digital readout. */
+/**
+ * One figure, set like a ledger entry: a hairline above, a small-caps label,
+ * a large light serif number, and a line of context.
+ */
 function Meter({
   icon: Icon,
   label,
@@ -125,9 +129,8 @@ function Meter({
   warning?: boolean;
 }) {
   return (
-    <div className="surface rise p-5 pb-6">
-      <Screws inset={8} />
-      <div className="mb-3 flex items-center justify-between px-3">
+    <div className="rise surface p-6">
+      <div className="mb-5 flex items-center justify-between">
         <span className="label flex items-center gap-2">
           <Icon className="h-3.5 w-3.5" />
           {label}
@@ -135,22 +138,15 @@ function Meter({
         <Led color={warning ? "red" : "green"} pulse={warning} />
       </div>
 
-      <div className="well display px-4 py-5 text-right">
-        <p
-          className={`readout text-5xl font-bold leading-none ${
-            warning ? "!text-led-red" : ""
-          }`}
-          style={
-            warning
-              ? { textShadow: "0 0 8px rgba(248,113,113,.7), 0 0 20px rgba(248,113,113,.3)" }
-              : undefined
-          }
-        >
-          {String(value).padStart(3, "0")}
-        </p>
-      </div>
+      <p
+        className={`serif text-5xl font-semibold leading-none tracking-tight ${
+          warning ? "text-led-red" : "text-ink"
+        }`}
+      >
+        {value}
+      </p>
 
-      <p className="engraved mt-3 px-1 text-xs">{hint}</p>
+      <p className="engraved mt-4 text-xs">{hint}</p>
     </div>
   );
 }

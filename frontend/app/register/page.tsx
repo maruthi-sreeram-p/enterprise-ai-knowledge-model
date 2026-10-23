@@ -79,7 +79,7 @@ export default function RegisterPage() {
         </>
       }
     >
-      <form onSubmit={handleSubmit} className="space-y-4">
+      <form onSubmit={handleSubmit} className="space-y-3">
         {error && <Alert>{error}</Alert>}
 
         <TextField
@@ -149,7 +149,7 @@ export default function RegisterPage() {
         <button
           type="submit"
           disabled={submitting}
-          className="btn btn-primary mt-3 w-full py-3.5"
+          className="btn btn-primary mt-2 w-full"
         >
           <Rocket className="h-4 w-4" />
           {submitting ? "Creating workspace…" : "Create workspace"}

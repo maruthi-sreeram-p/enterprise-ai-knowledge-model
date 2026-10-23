@@ -20,10 +20,10 @@ export default function SourceList({ sources }: { sources: SourceCitation[] }) {
   const consulted = sources.filter((source) => !source.cited);
 
   return (
-    <div className="mt-4 border-t border-black/60 pt-3 shadow-[0_-1px_0_rgba(255,255,255,0.05)]">
-      <p className="label mb-2">Sources</p>
+    <div className="mt-6 border-t-2 border-dashed border-line-strong pt-4">
+      <p className="eyebrow mb-4 !bg-lime">Sources</p>
 
-      <ul className="space-y-2">
+      <ul className="space-y-3">
         {cited.map((source) => (
           <SourceRow key={source.reference} source={source} emphasised />
         ))}
@@ -55,12 +55,12 @@ function SourceRow({
 }) {
   return (
     <li
-      className={`flex items-start gap-2.5 rounded-lg px-2.5 py-2 text-xs ${
-        emphasised ? "plate" : ""
+      className={`flex items-start gap-3 rounded-xl px-3 py-2.5 text-xs ${
+        emphasised ? "plate" : "border-2 border-dashed border-line"
       }`}
     >
-      <span className="readout mt-0.5 shrink-0 text-[11px]">
-        [{source.reference}]
+      <span className="mt-0.5 grid h-6 min-w-6 shrink-0 place-items-center rounded-full bg-brass px-1 text-[11px] font-extrabold text-[#14081f]">
+        {source.reference}
       </span>
       <FileText className="mt-0.5 h-3.5 w-3.5 shrink-0 text-ink-dim" />
       <span className="min-w-0">

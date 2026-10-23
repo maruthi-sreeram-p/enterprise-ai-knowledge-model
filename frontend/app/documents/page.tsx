@@ -119,9 +119,10 @@ function DocumentsWorkspace() {
   };
 
   return (
-    <div className="h-full overflow-y-auto pr-1">
-      <div className="mx-auto max-w-5xl p-3 md:p-5">
+    <div className="h-full overflow-y-auto">
+      <div className="mx-auto max-w-6xl px-5 py-10 sm:px-8">
         <PageHeader
+          eyebrow="The library"
           title="Documents"
           subtitle={
             isAdmin
@@ -206,7 +207,7 @@ function DocumentsWorkspace() {
               <div className="overflow-x-auto">
                 <table className="w-full text-left text-sm">
                   <thead>
-                    <tr className="border-b border-black/70 bg-white/[0.02]">
+                    <tr className="border-b-2 border-line-strong bg-violet/15">
                       <th className="label px-4 py-3">File</th>
                       <th className="label px-4 py-3">Status</th>
                       <th className="label px-4 py-3">Visibility</th>
@@ -219,7 +220,7 @@ function DocumentsWorkspace() {
                     {documents.map((document) => (
                       <tr
                         key={document.id}
-                        className="border-b border-white/[0.04] transition-colors last:border-0 hover:bg-white/[0.03]"
+                        className="border-b border-line transition-colors last:border-0 hover:bg-white/[0.03]"
                       >
                         <td className="px-4 py-3">
                           <p className="font-semibold text-ink">

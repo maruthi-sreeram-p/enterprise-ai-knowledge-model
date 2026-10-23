@@ -2,33 +2,37 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import {
-  BarChart3,
-  FileText,
-  LogOut,
-  MessageSquare,
-  ShieldCheck,
-} from "lucide-react";
+import { LogOut } from "lucide-react";
 import { useAuth } from "./AuthProvider";
-import { Led, Logo, RoleBadge, Screws } from "./ui";
+import { Logo, RoleBadge } from "./ui";
 import type { Role } from "../lib/types";
 
 interface NavItem {
   href: string;
   label: string;
-  icon: React.ComponentType<{ className?: string }>;
   roles?: Role[];
 }
 
 const NAV_ITEMS: NavItem[] = [
-  { href: "/", label: "Chat", icon: MessageSquare },
-  { href: "/documents", label: "Documents", icon: FileText },
-  { href: "/dashboard", label: "Dashboard", icon: BarChart3 },
-  { href: "/admin", label: "Admin", icon: ShieldCheck, roles: ["ADMIN"] },
+  { href: "/", label: "Ask" },
+  { href: "/documents", label: "Documents" },
+  { href: "/dashboard", label: "Overview" },
+  { href: "/admin", label: "Administration", roles: ["ADMIN"] },
+];
+
+const TICKER = [
+  "Ask anything",
+  "Every answer cited",
+  "Role-aware access",
+  "Your documents only",
+  "Private by design",
+  "Multi-tenant",
 ];
 
 /**
- * The control panel shared by every signed-in page.
+ * The masthead shared by every signed-in page: wordmark on the left, numbered
+ * sections in the middle, the signed-in person on the right, and a gold rule
+ * underneath.
  *
  * Items a user's role cannot use are hidden rather than shown disabled, since
  * there is nothing they could do to gain access from here.
@@ -45,100 +49,65 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     href === "/" ? pathname === "/" : pathname.startsWith(href);
 
   return (
-    <div className="flex h-screen gap-3 overflow-hidden p-3">
-      <nav
-        aria-label="Primary"
-        className="surface hidden w-60 shrink-0 flex-col px-3 pb-8 pt-7 md:flex"
-      >
-        <Screws inset={9} />
-
-        <div className="mb-5 flex items-center gap-3 px-2">
-          <Logo size={44} />
-          <div className="min-w-0">
-            <p className="embossed text-sm font-bold leading-tight">
-              Enterprise AI
-            </p>
-            <p className="engraved truncate text-xs">
-              {organizationName ?? "Knowledge Base"}
-            </p>
+    <div className="flex h-screen flex-col overflow-hidden">
+      <header className="shrink-0 bg-[#0c0718]/90">
+        <div className="ticker" aria-hidden>
+          <div className="ticker-track">
+            {[0, 1].map((copy) => (
+              <div key={copy} className="flex">
+                {TICKER.map((text) => (
+                  <span key={`${copy}-${text}`}>{text} ✦</span>
+                ))}
+              </div>
+            ))}
           </div>
         </div>
+        <div className="mx-auto flex max-w-7xl flex-wrap items-center gap-x-10 gap-y-0 px-5 sm:px-8">
+          <Link href="/" className="flex items-center gap-3 py-4">
+            <Logo size={34} />
+            <div className="leading-tight">
+              <p className="serif text-[1.05rem] tracking-wide">Knowledge Base</p>
+              <p className="label !text-[0.6rem]">
+                {organizationName ?? "Enterprise AI"}
+              </p>
+            </div>
+          </Link>
 
-        <p className="label mb-2 px-3">Navigate</p>
-        <div className="well mb-4 flex-1 space-y-1 p-2">
-          {visibleItems.map((item) => {
-            const Icon = item.icon;
-            const active = isActive(item.href);
-            return (
+          <nav
+            aria-label="Primary"
+            className="order-3 flex w-full gap-7 overflow-x-auto sm:order-none sm:w-auto sm:flex-1"
+          >
+            {visibleItems.map((item) => (
               <Link
                 key={item.href}
                 href={item.href}
-                aria-current={active ? "page" : undefined}
-                className="nav-key"
+                aria-current={isActive(item.href) ? "page" : undefined}
+                className="nav-key shrink-0"
               >
-                <Icon className="h-4 w-4 shrink-0" />
-                <span className="flex-1">{item.label}</span>
-                <Led on={active} color="amber" />
+                {item.label}
               </Link>
-            );
-          })}
-        </div>
+            ))}
+          </nav>
 
-        <div className="plate p-3">
-          <div className="flex items-center gap-3">
-            <div className="medallion h-9 w-9 shrink-0 text-sm font-bold">
-              {user?.name?.charAt(0).toUpperCase()}
+          <div className="ml-auto flex items-center gap-4 py-3">
+            <div className="hidden text-right leading-tight sm:block">
+              <p className="text-sm font-medium">{user?.name}</p>
+              <p className="mt-1">{user && <RoleBadge role={user.role} />}</p>
             </div>
-            <div className="min-w-0">
-              <p className="embossed truncate text-sm font-semibold">
-                {user?.name}
-              </p>
-              <p className="engraved truncate text-xs">{user?.email}</p>
-            </div>
-          </div>
-          <div className="mt-3 flex items-center justify-between">
-            {user && <RoleBadge role={user.role} />}
-            <button onClick={logout} className="btn btn-sm">
+            <button
+              onClick={logout}
+              aria-label="Sign out"
+              className="btn btn-sm"
+            >
               <LogOut className="h-3.5 w-3.5" />
-              Sign out
+              <span className="hidden sm:inline">Sign out</span>
             </button>
           </div>
         </div>
-      </nav>
+        <hr className="rule-gold" />
+      </header>
 
-      <div className="flex min-w-0 flex-1 flex-col gap-3">
-        {/* On small screens the rail collapses to a strip of keys, which keeps
-            every destination reachable in one tap. */}
-        <nav
-          aria-label="Primary"
-          className="surface flex items-center gap-1 overflow-x-auto p-2 md:hidden"
-        >
-          {visibleItems.map((item) => {
-            const Icon = item.icon;
-            const active = isActive(item.href);
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                aria-current={active ? "page" : undefined}
-                className="nav-key shrink-0 !gap-2 !px-3"
-              >
-                <Icon className="h-4 w-4" />
-                {item.label}
-              </Link>
-            );
-          })}
-          <button
-            onClick={logout}
-            aria-label="Sign out"
-            className="btn btn-sm btn-icon ml-auto shrink-0"
-          >
-            <LogOut className="h-4 w-4" />
-          </button>
-        </nav>
-
-        <main className="min-h-0 flex-1 overflow-hidden">{children}</main>
-      </div>
+      <main className="min-h-0 flex-1 overflow-hidden">{children}</main>
     </div>
   );
 }

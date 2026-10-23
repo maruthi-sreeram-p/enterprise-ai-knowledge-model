@@ -82,7 +82,7 @@ export default function LoginPage() {
         <button
           type="submit"
           disabled={submitting}
-          className="btn btn-primary mt-2 w-full py-3.5"
+          className="btn btn-primary mt-2 w-full"
         >
           <LogIn className="h-4 w-4" />
           {submitting ? "Signing in…" : "Sign in"}

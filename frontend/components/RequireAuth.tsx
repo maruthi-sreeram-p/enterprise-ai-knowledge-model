@@ -4,7 +4,7 @@ import { useEffect } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { Lock } from "lucide-react";
 import { useAuth } from "./AuthProvider";
-import { LoadingDots, Screws } from "./ui";
+import { LoadingDots } from "./ui";
 import type { Role } from "../lib/types";
 
 /**
@@ -49,7 +49,6 @@ export default function RequireAuth({
     return (
       <div className="flex h-screen items-center justify-center p-6">
         <div className="surface rise relative max-w-md px-10 py-10 text-center">
-          <Screws />
           <div className="well mx-auto mb-5 grid h-14 w-14 place-items-center rounded-full">
             <Lock className="h-6 w-6 text-led-amber" />
           </div>
