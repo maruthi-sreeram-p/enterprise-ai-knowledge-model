@@ -681,6 +681,16 @@ pages". Both now compare with `!= null`.
 
 ### Observations from the live runs
 
+- **Large documents are paced, because embedding is metered per minute.** Gemini's
+  free tier allows 30,000 embedding tokens per minute, and an early version that
+  sent every batch immediately failed a 1.9 MB PDF with a 429. `ThrottledVectorWriter`
+  now writes in batches of 25 and, on a 429, waits the delay Google asks for
+  (capped at 70s) and retries the same batch, up to 10 times. A 293 KB test document
+  (118 chunks) hit the limit at chunk 50, waited 47s, and completed in about 100s
+  in total. So on the free tier a big document takes minutes, not seconds, and shows
+  "Indexing" meanwhile. If the quota stays exhausted past the retry limit the
+  document is marked failed with a message saying so, rather than "internal error".
+
 - **Latency varies and is not small.** Three identical questions took 19.4s, 9.5s
   and 4.8s. That is Google's response time, not the application; the retrieval step
   is a single indexed query. These are three samples on one afternoon, not a

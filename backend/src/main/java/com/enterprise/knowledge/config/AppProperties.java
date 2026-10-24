@@ -198,6 +198,47 @@ public class AppProperties {
 
         private String topic = "document.uploaded";
 
+        /** Chunks sent to the embedding provider per call. */
+        @Min(1)
+        private int embeddingBatchSize = 25;
+
+        /**
+         * How many times one batch is retried after the provider answers 429
+         * (quota exceeded) before the document is marked failed. Free-tier
+         * embedding quota is counted per minute, so a large document legitimately
+         * needs several waits.
+         */
+        @Min(0)
+        private int maxQuotaRetries = 10;
+
+        /** Upper bound on a single wait, whatever the provider asks for. */
+        @Min(1)
+        private long maxQuotaWaitSeconds = 70;
+
+        public int getEmbeddingBatchSize() {
+            return embeddingBatchSize;
+        }
+
+        public void setEmbeddingBatchSize(int embeddingBatchSize) {
+            this.embeddingBatchSize = embeddingBatchSize;
+        }
+
+        public int getMaxQuotaRetries() {
+            return maxQuotaRetries;
+        }
+
+        public void setMaxQuotaRetries(int maxQuotaRetries) {
+            this.maxQuotaRetries = maxQuotaRetries;
+        }
+
+        public long getMaxQuotaWaitSeconds() {
+            return maxQuotaWaitSeconds;
+        }
+
+        public void setMaxQuotaWaitSeconds(long maxQuotaWaitSeconds) {
+            this.maxQuotaWaitSeconds = maxQuotaWaitSeconds;
+        }
+
         public Mode getMode() {
             return mode;
         }

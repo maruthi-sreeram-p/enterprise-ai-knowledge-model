@@ -46,25 +46,25 @@ public class DocumentIngestionService {
 
     private static final Logger log = LoggerFactory.getLogger(DocumentIngestionService.class);
 
-    /** Chunks are embedded in batches to limit the size of each provider call. */
-    private static final int EMBEDDING_BATCH_SIZE = 50;
-
     private final DocumentRepository documentRepository;
     private final DocumentStorageService storageService;
     private final DocumentTextExtractor textExtractor;
     private final TokenTextSplitter splitter;
     private final VectorStore vectorStore;
+    private final ThrottledVectorWriter vectorWriter;
 
     public DocumentIngestionService(DocumentRepository documentRepository,
                                     DocumentStorageService storageService,
                                     DocumentTextExtractor textExtractor,
                                     TokenTextSplitter splitter,
-                                    VectorStore vectorStore) {
+                                    VectorStore vectorStore,
+                                    ThrottledVectorWriter vectorWriter) {
         this.documentRepository = documentRepository;
         this.storageService = storageService;
         this.textExtractor = textExtractor;
         this.splitter = splitter;
         this.vectorStore = vectorStore;
+        this.vectorWriter = vectorWriter;
     }
 
     /**
@@ -125,7 +125,8 @@ public class DocumentIngestionService {
                     "The document contained text, but no passage was long enough to index.");
         }
 
-        storeInBatches(chunks);
+        // Paced and retried on provider rate limits; see ThrottledVectorWriter.
+        vectorWriter.addAll(chunks);
         return new IngestionOutcome(chunks.size(), extraction.pageCount());
     }
 
@@ -180,17 +181,6 @@ public class DocumentIngestionService {
         metadata.put(VectorMetadata.FILE_NAME, document.getFileName());
         metadata.put(VectorMetadata.VISIBILITY, document.getVisibility().name());
         return metadata;
-    }
-
-    private void storeInBatches(List<org.springframework.ai.document.Document> chunks) {
-        try {
-            for (int start = 0; start < chunks.size(); start += EMBEDDING_BATCH_SIZE) {
-                int end = Math.min(start + EMBEDDING_BATCH_SIZE, chunks.size());
-                vectorStore.add(chunks.subList(start, end));
-            }
-        } catch (Exception ex) {
-            throw new AiServiceException("Embedding the document failed.", ex);
-        }
     }
 
     /**
