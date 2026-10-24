@@ -324,8 +324,12 @@ Notes on specific choices:
 - **`vector_store` is left to Spring AI.** Writing that DDL by hand would risk
   drifting from what the library expects across versions.
 - **Embeddings are 768 dimensions, not 3072.** `gemini-embedding-001` returns
-  3072 by default, but a pgvector HNSW index supports at most 2000 — the index
-  build would fail. 768 is a supported truncation and keeps HNSW usable.
+  3072 by default, but a pgvector HNSW index supports at most 2000. This was
+  checked directly rather than assumed: `CREATE INDEX ... USING hnsw` on a
+  `vector(3072)` column fails with *"column cannot have more than 2000
+  dimensions for hnsw index"*, while `vector(768)` succeeds. The live
+  `vector_store` table has `embedding vector(768)` with a working
+  `spring_ai_vector_index` HNSW index.
 - **`audit_logs` has no foreign keys.** Some events happen before an identity
   exists (a failed login for an unknown address), and the record should outlive
   the user it refers to.
@@ -478,6 +482,19 @@ cd backend && mvn spring-boot:run
 Flyway applies the schema and Spring AI creates the vector table on first start.
 The API comes up on <http://localhost:8080>.
 
+The backend reads `.env` through `spring.config.import` in `application.yml`.
+That import is there because Spring Boot does **not** read `.env` files on its
+own — only Docker Compose does — so without it a correct key sitting in `.env`
+would be ignored and startup would fail on an unresolved placeholder. Real
+environment variables still take precedence over the file, so a deployment that
+supplies them properly is unaffected.
+
+If the key is missing or wrong, the application still starts and the UI still
+works; uploads simply end as `FAILED`. The client is told only "Indexing failed
+because of an internal error", while the server log carries the real cause —
+`400 API key not valid` from the Gemini API. That split is deliberate: provider
+errors can echo request details, so they stay in the log.
+
 ### 4. Run the frontend
 
 ```bash
@@ -498,7 +515,7 @@ list.
 | Variable | Default | Purpose |
 | --- | --- | --- |
 | `GEMINI_API_KEY` | *(required)* | Gemini API key. Backend only — never in frontend code |
-| `GEMINI_CHAT_MODEL` | `gemini-2.5-flash` | Chat model |
+| `GEMINI_CHAT_MODEL` | `gemini-3.5-flash` | Chat model. Chosen by testing the live API; see the note in `.env.example` |
 | `GEMINI_EMBEDDING_MODEL` | `gemini-embedding-001` | Embedding model |
 | `GEMINI_EMBEDDING_DIMENSIONS` | `768` | Must match `EMBEDDING_DIMENSIONS` |
 | `EMBEDDING_DIMENSIONS` | `768` | pgvector column width |
@@ -632,6 +649,21 @@ Stated plainly, because a claim in a README is worthless if it has not been run.
 - **Role enforcement was confirmed live.** An employee got 403 on the audit log
   and on user creation, saw one document instead of two, and a question about the
   admins-only document was answered from the handbook alone, with no leak.
+- **A live Gemini round trip was verified end to end** (`gemini-embedding-001`
+  and `gemini-3.5-flash`, real PostgreSQL with pgvector):
+  - A question phrased without any of the document's words ("holiday time ... staff
+    ... roll over") was answered correctly from a document saying "paid annual
+    leave ... employees ... carried over", with similarity 0.62.
+  - A 3-page PDF with a fact only on page 3 produced a citation reading `page=3`,
+    taken from PDFBox's per-page extraction rather than from the model.
+  - A question the documents do not cover was declined, with nothing cited.
+  - A second organization asking about the first's data got `grounded: false`,
+    zero sources, and no leaked content.
+- **The chat model name needed correcting by testing.** `gemini-2.5-flash` is still
+  listed by the API but returns 404 ("no longer available to new users") for newer
+  keys. Google's error suggested `gemini-3.8-flash`, but that and
+  `gemini-flash-latest` both hung for over 100s on a one-word prompt, so the
+  default is `gemini-3.5-flash`, which answered in under 3s.
 - **Audit privacy was confirmed.** `AI_QUERY` records store `questionLength`,
   `grounded`, `sourceCount` and `citedDocumentIds` — and no question or answer
   text.
@@ -647,11 +679,23 @@ cause: the response DTOs use `@JsonInclude(NON_NULL)`, so a null `pageNumber` or
 rendered "page " with nothing after it, and the document list showed "undefined
 pages". Both now compare with `!= null`.
 
+### Observations from the live runs
+
+- **Latency varies and is not small.** Three identical questions took 19.4s, 9.5s
+  and 4.8s. That is Google's response time, not the application; the retrieval step
+  is a single indexed query. These are three samples on one afternoon, not a
+  benchmark, and no performance figure should be inferred from them.
+- **The similarity threshold does not separate relevant from irrelevant.** With real
+  embeddings, an unrelated question still scored 0.48-0.56 against every passage,
+  while genuine matches scored 0.62-0.69, so the 0.35 default filters almost nothing
+  and the "no passages, skip the model" shortcut rarely fires for off-topic
+  questions. What actually produced the correct refusal was the model following its
+  instruction to use only the supplied passages. The threshold is therefore a coarse
+  filter and the prompt is the real safeguard; tuning the threshold is listed under
+  future improvements.
+
 ### Written but not yet executed end to end
 
-- **A live Gemini call.** No API key has been used. The ingestion and answering
-  paths are written against Spring AI's verified API and exercised with offline
-  stand-ins, but not against the real service.
 - **`INGESTION_MODE=KAFKA`.** The producer, consumer, topic configuration, and
   serializers are written, but the Kafka path has not been run.
 - **The Docker images.** `docker-compose.yml` and the backend `Dockerfile` are
@@ -697,4 +741,8 @@ Roughly in order of value:
 7. **Streaming answers**, so the first tokens appear immediately.
 8. **Object storage** for uploaded files, replacing the single
    `DocumentStorageService` class.
-9. **Measure something**, then write the numbers here.
+9. **Calibrate the similarity threshold** against a labelled set of relevant and
+   irrelevant questions, instead of the current untuned 0.35.
+10. **Reduce answer latency**, for example by lowering the model's thinking budget,
+    after measuring where the time actually goes.
+11. **Measure something**, then write the numbers here.

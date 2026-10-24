@@ -3,6 +3,29 @@ spring:
     name: enterprise-ai-knowledge-base
 
   # ---------------------------------------------------------------------------
+  # Load the local .env file, if there is one.
+  #
+  # Spring Boot does not read .env files on its own -- only Docker Compose does.
+  # Without this import, `mvn spring-boot:run` would ignore a perfectly good
+  # GEMINI_API_KEY sitting in .env and fail on an unresolved placeholder, which
+  # is a confusing way to learn that the file is only half-wired.
+  #
+  # `optional:` means a missing file is not an error, so a deployment that
+  # supplies real environment variables instead is unaffected. The
+  # `[.properties]` suffix tells Spring to parse an extensionless file as
+  # properties. Both paths are listed because the working directory may be the
+  # repository root or the backend module.
+  #
+  # Real environment variables still win: they have higher precedence than an
+  # imported file, so production configuration is never overridden by a stray
+  # .env left on a server.
+  # ---------------------------------------------------------------------------
+  config:
+    import:
+      - optional:file:./.env[.properties]
+      - optional:file:../.env[.properties]
+
+  # ---------------------------------------------------------------------------
   # PostgreSQL. Every value comes from the environment; nothing is hardcoded.
   # ---------------------------------------------------------------------------
   datasource:
@@ -66,7 +89,7 @@ spring:
         api-key: ${GEMINI_API_KEY}
         chat:
           options:
-            model: ${GEMINI_CHAT_MODEL:gemini-2.5-flash}
+            model: ${GEMINI_CHAT_MODEL:gemini-3.5-flash}
             temperature: 0.2
         embedding:
           api-key: ${GEMINI_API_KEY}

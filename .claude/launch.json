@@ -9,6 +9,13 @@
       "port": 3000
     },
     {
+      "name": "backend",
+      "runtimeExecutable": "mvn",
+      "runtimeArgs": ["spring-boot:run"],
+      "cwd": "backend",
+      "port": 8080
+    },
+    {
       "name": "backend-demo",
       "runtimeExecutable": "mvn",
       "runtimeArgs": ["spring-boot:run", "-Dspring-boot.run.profiles=demo"],
